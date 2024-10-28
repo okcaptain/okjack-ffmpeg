@@ -2529,8 +2529,8 @@ static int hls_probe(const AVProbeData *p)
 {
     /* Require #EXTM3U at the start, and either one of the ones below
      * somewhere for a proper match. */
-    if (strncmp(p->buf, "#EXTM3U", 7))
-        return 0;
+    if (!strncmp(p->buf, "#EXTM3U", 7))
+        return AVPROBE_SCORE_MAX;
 
     if (strstr(p->buf, "#EXT-X-STREAM-INF:")     ||
         strstr(p->buf, "#EXT-X-TARGETDURATION:") ||
