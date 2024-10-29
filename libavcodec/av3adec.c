@@ -2,6 +2,7 @@
 #include "avs3_rom_com.h"
 #include "avs3_prot_dec.h"
 #include "avs3_stat_dec.h"
+#include "avs3_decoder_interface.h"
 
 #include "libavutil/log.h"
 #include "libavutil/opt.h"
@@ -301,7 +302,7 @@ static av_cold int av3a_decode_close(AVCodecContext *avctx)
 }
 
 static int av3a_decode_frame(AVCodecContext *avctx, void *data,
-                             int *got_frame_ptr, AVPacket *avpkt)
+      int *got_frame_ptr, AVPacket *avpkt)
 {
     AV3AContext *s = avctx->priv_data;
     int ret;
