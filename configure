@@ -217,6 +217,7 @@ External library support:
   --enable-libaribcaption  enable ARIB text and caption decoding via libaribcaption [no]
   --enable-libass          enable libass subtitles rendering,
                            needed for subtitles and ass filter [no]
+  --enable-libavs3a        enable avs3a [no]
   --enable-libbluray       enable BluRay reading using libbluray [no]
   --enable-libbs2b         enable bs2b DSP library [no]
   --enable-libcaca         enable textual display using libcaca [no]
@@ -1905,6 +1906,7 @@ EXTERNAL_LIBRARY_LIST="
     libaom
     libaribcaption
     libass
+    libavs3a
     libbluray
     libbs2b
     libcaca
@@ -3480,6 +3482,7 @@ libaom_av1_encoder_deps="libaom"
 libaom_av1_encoder_select="extract_extradata_bsf"
 libaribb24_decoder_deps="libaribb24"
 libaribcaption_decoder_deps="libaribcaption"
+libavs3a_decoder_deps="libavs3a"
 libcelt_decoder_deps="libcelt"
 libcodec2_decoder_deps="libcodec2"
 libcodec2_encoder_deps="libcodec2"
