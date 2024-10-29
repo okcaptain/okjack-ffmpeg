@@ -228,12 +228,12 @@ static int av3a_update_params(AV3AContext *header, AVCodecContext *avctx)
     avctx->bit_rate = header->handle->totalBitrate;
     avctx->bits_per_raw_sample = header->handle->bitDepth;
     // avctx->channel_layout = av3a_channel_layout[header->channel_number_index].mask;
-    // avctx->channels = av3a_channel_layout[header->channel_number_index].nb_channels;
-    avctx->channels = header->handle->numChansOutput;
-    avctx->channel_layout = av_get_default_channel_layout(avctx->channels);
+    // avctx->ch_layout.nb_channels = av3a_channel_layout[header->channel_number_index].nb_channels;
+    avctx->ch_layout.nb_channels = header->handle->numChansOutput;
+    avctx->channel_layout = av_get_default_channel_layout(avctx->ch_layout.nb_channels);
     if (avctx->channel_layout <= 0) {
         avctx->channel_layout = 0;
-        for (int32_t c = 0; c < avctx->channels; ++c)
+        for (int32_t c = 0; c < avctx->ch_layout.nb_channels; ++c)
             avctx->channel_layout |= 1 << c;
     }
 
@@ -325,7 +325,7 @@ static int av3a_decode_frame(AVCodecContext *avctx, void *data,
         memcpy(s->handle->hBitstream, avpkt->data + s->header_bytes, s->frame_bytes);
 
         if (!s->data) {
-            s->size = (size_t)avctx->channels * (size_t)avctx->frame_size * sizeof(int16_t);
+            s->size = (size_t)avctx->ch_layout.nb_channels * (size_t)avctx->frame_size * sizeof(int16_t);
             if (!(s->data = (int16_t*)av_mallocz(s->size)))
             return AVERROR(ENOMEM);
         }
@@ -342,7 +342,7 @@ static int av3a_decode_frame(AVCodecContext *avctx, void *data,
 
         frame->nb_samples = avctx->frame_size;
         frame->sample_rate = avctx->sample_rate;
-        frame->channels = avctx->channels;
+        frame->ch_layout.nb_channels = avctx->ch_layout.nb_channels;
 
         if ((ret = ff_get_buffer(avctx, frame, 0)) < 0)
             return ret;
