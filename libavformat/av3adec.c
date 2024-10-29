@@ -262,6 +262,7 @@ static const AVOption options[] = {
         { NULL },
 };
 
+#ifdef CONFIG_LIBAV3AD
 static const AVClass ff_av3a_demuxer_class = {
     .class_name = "av3a",
     .item_name = av_default_item_name,
@@ -283,3 +284,4 @@ const FFInputFormat ff_av3a_demuxer = {
     .priv_data_size = sizeof(AV3AHeader),
     .p.priv_class = &ff_av3a_demuxer_class,
 };
+#endif

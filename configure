@@ -217,7 +217,7 @@ External library support:
   --enable-libaribcaption  enable ARIB text and caption decoding via libaribcaption [no]
   --enable-libass          enable libass subtitles rendering,
                            needed for subtitles and ass filter [no]
-  --enable-libavs3a        enable avs3a [no]
+  --enable-libav3ad        enable libav3ad [no]
   --enable-libbluray       enable BluRay reading using libbluray [no]
   --enable-libbs2b         enable bs2b DSP library [no]
   --enable-libcaca         enable textual display using libcaca [no]
@@ -1906,7 +1906,7 @@ EXTERNAL_LIBRARY_LIST="
     libaom
     libaribcaption
     libass
-    libavs3a
+    libav3ad
     libbluray
     libbs2b
     libcaca
@@ -3482,7 +3482,7 @@ libaom_av1_encoder_deps="libaom"
 libaom_av1_encoder_select="extract_extradata_bsf"
 libaribb24_decoder_deps="libaribb24"
 libaribcaption_decoder_deps="libaribcaption"
-libavs3a_decoder_deps="libavs3a"
+libav3ad_decoder_deps="libav3ad"
 libcelt_decoder_deps="libcelt"
 libcodec2_decoder_deps="libcodec2"
 libcodec2_encoder_deps="libcodec2"
@@ -3571,6 +3571,7 @@ av1_demuxer_select="av1_frame_merge_bsf av1_parser"
 avi_demuxer_select="riffdec exif"
 avi_muxer_select="riffenc"
 avif_muxer_select="mov_muxer"
+av3a_demuxer_select="libav3ad"
 caf_demuxer_select="iso_media"
 caf_muxer_select="iso_media"
 dash_muxer_select="mp4_muxer"
@@ -6834,6 +6835,7 @@ enabled libaribcaption    && require_pkg_config libaribcaption "libaribcaption >
 enabled lv2               && require_pkg_config lv2 lilv-0 "lilv/lilv.h" lilv_world_new
 enabled libiec61883       && require libiec61883 libiec61883/iec61883.h iec61883_cmp_connect -lraw1394 -lavc1394 -lrom1394 -liec61883
 enabled libass            && require_pkg_config libass "libass >= 0.11.0" ass/ass.h ass_library_init
+enabled libav3ad          && require_pkg_config libav3ad av3a_decoder avs3_prot_dec.h Avs3InitDecoder
 enabled libbluray         && require_pkg_config libbluray libbluray libbluray/bluray.h bd_open
 enabled libbs2b           && require_pkg_config libbs2b libbs2b bs2b.h bs2b_open
 enabled libcelt           && require libcelt celt/celt.h celt_decode -lcelt0 &&
