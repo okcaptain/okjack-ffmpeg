@@ -367,7 +367,6 @@ static const AVOption options[] = {
         {NULL},
 };
 
-#ifdef CONFIG_LIBAV3AD
 static const AVClass libavs3a_decoder_class = {
 	.class_name = "libav3a decoder",
 	.item_name = av_default_item_name,
@@ -394,4 +393,3 @@ const FFCodec ff_av3a_decoder = {
 	.p.priv_class = &libavs3a_decoder_class,
 	.p.wrapper_name = "av3a",
 };
-#endif
