@@ -8,6 +8,8 @@
 #include "libavutil/opt.h"
 #include "avcodec.h"
 #include "decode.h"
+#include "internal.h"
+#include "profiles.h"
 #include "codec_internal.h"
 
 typedef struct AV3AContext {
@@ -301,12 +303,11 @@ static av_cold int av3a_decode_close(AVCodecContext *avctx)
     return 0;
 }
 
-static int av3a_decode_frame(AVCodecContext *avctx, void *data,
+static int av3a_decode_frame(AVCodecContext *avctx, AVFrame *frame,
       int *got_frame_ptr, AVPacket *avpkt)
 {
     AV3AContext *s = avctx->priv_data;
     int ret;
-    AVFrame *frame = (AVFrame*)data;
 
     if (frame) {
         if ((ret = av3a_parse_header(avpkt->data, s)) < 0)
