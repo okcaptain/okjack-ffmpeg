@@ -262,7 +262,7 @@ static const AVOption options[] = {
         { NULL },
 };
 
-#if CONFIG_AV3A_DEMUXER
+#if CONFIG_LIBAV3AD
 static const AVClass ff_av3a_demuxer_class = {
     .class_name = "av3a",
     .item_name = av_default_item_name,
