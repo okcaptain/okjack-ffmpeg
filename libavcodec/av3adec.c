@@ -65,10 +65,10 @@ static const AV3AChannelLayout av3a_channel_layout[] = {
         AV3A_CHANNEL_LAYOUT_MASK(12, AV_CH_LAYOUT_10POINT2),  // CHANNEL_CONFIG_MC_10_2
         AV3A_CHANNEL_LAYOUT_MASK(24, AV_CH_LAYOUT_22POINT2),
         AV3A_CHANNEL_LAYOUT_MASK(4,  AV_CH_LAYOUT_4POINT0),
-        AV3A_CHANNEL_LAYOUT_MASK(8,  AV_CH_LAYOUT_5_1_2),
-        AV3A_CHANNEL_LAYOUT_MASK(10, AV_CH_LAYOUT_5_1_4),
-        AV3A_CHANNEL_LAYOUT_MASK(10, AV_CH_LAYOUT_7_1_2),
-        AV3A_CHANNEL_LAYOUT_MASK(12, AV_CH_LAYOUT_7_1_4),
+        AV3A_CHANNEL_LAYOUT_MASK(8,  AV_CH_LAYOUT_5POINT1POINT2_BACK),
+        AV3A_CHANNEL_LAYOUT_MASK(10, AV_CH_LAYOUT_5POINT1POINT4_BACK),
+        AV3A_CHANNEL_LAYOUT_MASK(10, AV_CH_LAYOUT_7POINT1POINT2),
+        AV3A_CHANNEL_LAYOUT_MASK(12, AV_CH_LAYOUT_7POINT1POINT4_BACK),
         AV3A_CHANNEL_LAYOUT_MASK(4,  AV_CH_LAYOUT_4POINT0),
         AV3A_CHANNEL_LAYOUT_MASK(9,  AV_CH_LAYOUT_9POINT0),  // CHANNEL_CONFIG_HOA_ORDER2
         AV3A_CHANNEL_LAYOUT_MASK(16, AV_CH_LAYOUT_HEXADECAGONAL), // CHANNEL_CONFIG_HOA_ORDER3
@@ -230,11 +230,6 @@ static int av3a_update_params(AV3AContext *header, AVCodecContext *avctx)
     // avctx->channel_layout = av3a_channel_layout[header->channel_number_index].mask;
     // avctx->ch_layout.nb_channels = av3a_channel_layout[header->channel_number_index].nb_channels;
     av_channel_layout_default(&avctx->ch_layout, header->handle->numChansOutput);
-    if (avctx->ch_layout <= 0) {
-        avctx->ch_layout = 0;
-        for (int32_t c = 0; c < avctx->ch_layout.nb_channels; ++c)
-            avctx->ch_layout |= 1 << c;
-    }
 
     avctx->frame_size = FRAME_LEN;
     if (avctx->bits_per_raw_sample == 8)
@@ -271,7 +266,9 @@ static av_cold int av3a_decode_init(AVCodecContext *avctx)
     AV3AContext *s = avctx->priv_data;
     s->avctx = avctx;
 
-    if (!(s->handle = Avs3AllocDecoder()))
+//    if (!(s->handle = Avs3AllocDecoder()))
+//        return AVERROR(ENOMEM);
+    if (!(s->handle = avs3_create_decoder()))
         return AVERROR(ENOMEM);
 
     s->size = 0;
@@ -294,7 +291,8 @@ static av_cold int av3a_decode_close(AVCodecContext *avctx)
     }
 
     if (s->handle) {
-        Avs3DecoderDestroy(s->handle, &s->model_fp);
+//        Avs3DecoderDestroy(s->handle, &s->model_fp);
+        avs3_destroy_decoder(s->handle);
         s->handle = NULL;
     }
     s->inited = 0;
@@ -317,7 +315,8 @@ static int av3a_decode_frame(AVCodecContext *avctx, void *data,
             return ret;
 
         if (s->inited == 0) {
-            Avs3InitDecoder(s->handle, &s->model_fp);
+//            Avs3InitDecoder(s->handle, &s->model_fp);
+            Avs3InitDecoder(s->handle, &s->model_fp, "model.bin");
             s->inited = 1;
         }
 
