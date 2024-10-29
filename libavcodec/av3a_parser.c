@@ -234,7 +234,7 @@ static int av3a_update_params(AV3AParseContext *header)
     // header->channel_layout = av3a_channel_layout[header->channel_number_index].mask;
     // header->channels = av3a_channel_layout[header->channel_number_index].nb_channels;
     header->channels = numChansOutput;
-    header->channel_layout = av_get_default_channel_layout(header->channels);
+    av_channel_layout_default(&header->channel_layout, numChansOutput);
     if (header->channel_layout <= 0)
     {
         header->channel_layout = 0;
