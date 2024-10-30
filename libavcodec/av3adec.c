@@ -230,9 +230,10 @@ static int av3a_update_params(AV3AContext *header, AVCodecContext *avctx)
     avctx->sample_rate = header->handle->outputFs;
     avctx->bit_rate = header->handle->totalBitrate;
     avctx->bits_per_raw_sample = header->handle->bitDepth;
-    // avctx->channel_layout = av3a_channel_layout[header->channel_number_index].mask;
-    // avctx->ch_layout.nb_channels = av3a_channel_layout[header->channel_number_index].nb_channels;
+//     avctx->ch_layout = av3a_channel_layout[header->channel_number_index].mask;
+//     avctx->ch_layout.nb_channels = av3a_channel_layout[header->channel_number_index].nb_channels;
     av_channel_layout_default(&avctx->ch_layout, header->handle->numChansOutput);
+    avctx->ch_layout.nb_channels = header->handle->numChansOutput;
 
     avctx->frame_size = FRAME_LEN;
     if (avctx->bits_per_raw_sample == 8)
@@ -343,6 +344,28 @@ static int av3a_decode_frame(AVCodecContext *avctx, AVFrame *frame,
         frame->nb_samples = avctx->frame_size;
         frame->sample_rate = avctx->sample_rate;
         frame->ch_layout.nb_channels = avctx->ch_layout.nb_channels;
+
+        //add by
+        av_channel_layout_default(&frame->ch_layout, avctx->ch_layout.nb_channels);
+        ChannelNumConfig chconf = s->handle->channelNumConfig;
+        if(frame->ch_layout.nb_channels == 1)
+            frame->ch_layout = (AVChannelLayout) AV_CHANNEL_LAYOUT_MONO;// need set frame->ch_payout to frame ch_out verification
+        else if(frame->ch_layout.nb_channels == 2)
+            frame->ch_layout = (AVChannelLayout) AV_CHANNEL_LAYOUT_STEREO;// need set frame->ch_payout to frame ch_out verification
+        else if(chconf == CHANNEL_CONFIG_MC_5_1_4 && frame->ch_layout.nb_channels == 10)
+            frame->ch_layout = (AVChannelLayout) AV_CHANNEL_LAYOUT_5POINT1POINT4_BACK;
+        else if(chconf == CHANNEL_CONFIG_MC_7_1_2 && frame->ch_layout.nb_channels == 10)
+            frame->ch_layout = (AVChannelLayout)AV_CHANNEL_LAYOUT_7POINT1POINT2;
+        else if(chconf == CHANNEL_CONFIG_MC_7_1_4 && frame->ch_layout.nb_channels == 12)
+            frame->ch_layout = (AVChannelLayout) AV_CHANNEL_LAYOUT_7POINT1POINT4_BACK;
+        else if(chconf == CHANNEL_CONFIG_HOA_ORDER3 && frame->ch_layout.nb_channels == 16)
+            frame->ch_layout = (AVChannelLayout) AV_CHANNEL_LAYOUT_HEXADECAGONAL;
+        else if(chconf == CHANNEL_CONFIG_UNKNOWN)//error
+            av_log(avctx, AV_LOG_ERROR, "unknown audio chconf! Please check the source...\n");
+        avctx->ch_layout  = frame->ch_layout;//need reset avctx->ch_layout for ff_get_buffer to get correct size
+        avctx->ch_layout.nb_channels = frame->ch_layout.nb_channels
+        frame->format = AV_SAMPLE_FMT_S16;
+        //end
 
         if ((ret = ff_get_buffer(avctx, frame, 0)) < 0)
             return ret;
