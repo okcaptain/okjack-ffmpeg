@@ -4775,7 +4775,7 @@ void av_url_split(char *proto, int proto_size,
                   char *hostname, int hostname_size,
                   int *port_ptr, char *path, int path_size, const char *url)
 {
-    const char *p, *ls, *ls2, *at, *at2, *col, *brk;
+    const char *p, *ls, *at, *at2, *col, *brk;
 
     if (port_ptr)
         *port_ptr = -1;
@@ -4803,16 +4803,14 @@ void av_url_split(char *proto, int proto_size,
     }
 
     /* separate path from hostname */
-    ls = strchr(p, '/');
-    ls2 = strchr(p, '?');
-    if (!ls)
-        ls = ls2;
-    else if (ls && ls2)
-        ls = FFMIN(ls, ls2);
-    if (ls)
+    ls = p + strcspn(p, "/?#");
+    if (strncmp(ls, "/", 1) != 0) {
+        char path1[MAX_URL_SIZE];
+        sprintf(path1, "%s%s", "/", ls);
+        av_strlcpy(path, path1, path_size);
+    } else {
         av_strlcpy(path, ls, path_size);
-    else
-        ls = &p[strlen(p)];  // XXX
+    }
 
     /* the rest is hostname, use that to parse auth/port */
     if (ls != p) {
