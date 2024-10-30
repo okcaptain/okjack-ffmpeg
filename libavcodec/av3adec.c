@@ -390,7 +390,6 @@ static const AVOption options[] = {
         {NULL},
 };
 
-#if CONFIG_LIBAV3AD
 static const AVClass libavs3a_decoder_class = {
 	.class_name = "libav3a decoder",
 	.item_name = av_default_item_name,
@@ -407,14 +406,9 @@ const FFCodec ff_av3a_decoder = {
 	.init = av3a_decode_init,
 	.close = av3a_decode_close,
     FF_CODEC_DECODE_CB(av3a_decode_frame),
-	.p.sample_fmts = (const enum AVSampleFormat[]) {
-		AV_SAMPLE_FMT_S16, AV_SAMPLE_FMT_NONE
-	},
 	.p.capabilities = AV_CODEC_CAP_CHANNEL_CONF | AV_CODEC_CAP_DR1,
-    .caps_internal  = FF_CODEC_CAP_NOT_INIT_THREADSAFE |
-                          FF_CODEC_CAP_AUTO_THREADS,
+    .caps_internal  = FF_CODEC_CAP_INIT_CLEANUP,
 	.flush = flush,
 	.p.priv_class = &libavs3a_decoder_class,
 	.p.wrapper_name = "av3a",
 };
-#endif
