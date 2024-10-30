@@ -232,8 +232,13 @@ static int av3a_update_params(AV3AContext *header, AVCodecContext *avctx)
     avctx->bits_per_raw_sample = header->handle->bitDepth;
 //     avctx->ch_layout = av3a_channel_layout[header->channel_number_index].mask;
 //     avctx->ch_layout.nb_channels = av3a_channel_layout[header->channel_number_index].nb_channels;
-    av_channel_layout_default(&avctx->ch_layout, header->handle->numChansOutput);
     avctx->ch_layout.nb_channels = header->handle->numChansOutput;
+    av_channel_layout_default(&avctx->ch_layout, header->handle->numChansOutput);
+    if (avctx->ch_layout.u.mask <= 0) {
+        avctx->ch_layout.u.mask = 0;
+        for (int32_t c = 0; c < avctx->ch_layout.nb_channels; ++c)
+            avctx->ch_layout.u.mask |= 1 << c;
+    }
 
     avctx->frame_size = FRAME_LEN;
     if (avctx->bits_per_raw_sample == 8)

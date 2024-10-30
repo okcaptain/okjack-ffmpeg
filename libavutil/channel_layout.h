@@ -537,6 +537,14 @@ int av_channel_layout_from_string(AVChannelLayout *channel_layout,
 void av_channel_layout_default(AVChannelLayout *ch_layout, int nb_channels);
 
 /**
+ * Return default channel layout for a given number of channels.
+ *
+ * @deprecated use av_channel_layout_default()
+ */
+attribute_deprecated
+int64_t av_get_default_channel_layout(int nb_channels);
+
+/**
  * Iterate over all standard channel layouts.
  *
  * @param opaque a pointer where libavutil will store the iteration state. Must

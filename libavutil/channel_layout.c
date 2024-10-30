@@ -842,6 +842,14 @@ void av_channel_layout_default(AVChannelLayout *ch_layout, int nb_channels)
     ch_layout->nb_channels = nb_channels;
 }
 
+int64_t av_get_default_channel_layout(int nb_channels) {
+    int i;
+    for (i = 0; i < FF_ARRAY_ELEMS(channel_layout_map); i++)
+        if (nb_channels == channel_layout_map[i].layout.nb_channels)
+            return channel_layout_map[i].layout.u.mask;
+    return 0;
+}
+
 const AVChannelLayout *av_channel_layout_standard(void **opaque)
 {
     uintptr_t i = (uintptr_t)*opaque;
