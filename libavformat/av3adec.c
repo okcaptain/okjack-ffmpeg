@@ -198,7 +198,7 @@ static int av3a_read_header(AVFormatContext *s)
 
     st->codecpar->codec_type = AVMEDIA_TYPE_AUDIO;
     st->codecpar->codec_id = AV_CODEC_ID_AV3A;
-    st->need_parsing = AVSTREAM_PARSE_FULL_RAW;
+//    st->need_parsing = AVSTREAM_PARSE_FULL_RAW;
     st->start_time = 0;
 
     if ((ret = av3a_parse_header(s, 1)) < 0)
