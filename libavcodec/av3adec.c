@@ -368,7 +368,7 @@ static int av3a_decode_frame(AVCodecContext *avctx, AVFrame *frame,
         else if(chconf == CHANNEL_CONFIG_UNKNOWN)//error
             av_log(avctx, AV_LOG_ERROR, "unknown audio chconf! Please check the source...\n");
         avctx->ch_layout  = frame->ch_layout;//need reset avctx->ch_layout for ff_get_buffer to get correct size
-        avctx->ch_layout.nb_channels = frame->ch_layout.nb_channels
+        avctx->ch_layout.nb_channels = frame->ch_layout.nb_channels;
         frame->format = AV_SAMPLE_FMT_S16;
         //end
 
