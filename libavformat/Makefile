@@ -142,6 +142,7 @@ OBJS-$(CONFIG_AVS_DEMUXER)               += avs.o voc_packet.o voc.o
 OBJS-$(CONFIG_AVS2_DEMUXER)              += avs2dec.o rawdec.o
 OBJS-$(CONFIG_AVS2_MUXER)                += rawenc.o
 OBJS-$(CONFIG_AVS3_DEMUXER)              += avs3dec.o rawdec.o
+OBJS-$(CONFIG_AV3A_DEMUXER)              += av3adec.o rawdec.o
 OBJS-$(CONFIG_AVS3_MUXER)                += rawenc.o
 OBJS-$(CONFIG_BETHSOFTVID_DEMUXER)       += bethsoftvid.o
 OBJS-$(CONFIG_BFI_DEMUXER)               += bfi.o
