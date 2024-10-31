@@ -220,6 +220,7 @@ External library support:
   --enable-libaom          enable AV1 video encoding/decoding via libaom [no]
   --enable-libass          enable libass subtitles rendering,
                            needed for subtitles and ass filter [no]
+  --enable-libav3ad        enable libav3ad [no]
   --enable-libbluray       enable BluRay reading using libbluray [no]
   --enable-libbs2b         enable bs2b DSP library [no]
   --enable-libcaca         enable textual display using libcaca [no]
@@ -1673,6 +1674,7 @@ EXTERNAL_LIBRARY_LIST="
     ladspa
     libaom
     libass
+    libav3ad
     libbluray
     libbs2b
     libcaca
@@ -3101,6 +3103,7 @@ asf_muxer_select="riffenc"
 asf_stream_muxer_select="asf_muxer"
 avi_demuxer_select="iso_media riffdec exif"
 avi_muxer_select="riffenc"
+av3a_demuxer_select="libav3ad"
 caf_demuxer_select="iso_media riffdec"
 caf_muxer_select="iso_media"
 dash_muxer_select="mp4_muxer"
@@ -5965,6 +5968,7 @@ enabled libaom            && require_pkg_config libaom "aom >= 0.1.0" aom/aom_co
 enabled lv2               && require_pkg_config lv2 lilv-0 "lilv-0/lilv/lilv.h" lilv_world_new
 enabled libiec61883       && require libiec61883 libiec61883/iec61883.h iec61883_cmp_connect -lraw1394 -lavc1394 -lrom1394 -liec61883
 enabled libass            && require_pkg_config libass libass ass/ass.h ass_library_init
+enabled libav3ad          && require libav3ad av3a_decoder avs3_prot_dec.h Avs3InitDecoder -lav3ad
 enabled libbluray         && require_pkg_config libbluray libbluray libbluray/bluray.h bd_open
 enabled libbs2b           && require_pkg_config libbs2b libbs2b bs2b.h bs2b_open
 enabled libcelt           && require libcelt celt/celt.h celt_decode -lcelt0 &&

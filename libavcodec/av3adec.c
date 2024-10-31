@@ -374,7 +374,7 @@ static const AVClass libavs3a_decoder_class = {
         .version = LIBAVUTIL_VERSION_INT,
 };
 
-const FFCodec ff_libavs3a_decoder = {
+const FFCodec ff_av3a_decoder = {
         .p.name = "libavs3a",
         CODEC_LONG_NAME("AV3A (Advanced Audio Coding)"),
         .p.type = AVMEDIA_TYPE_AUDIO,
@@ -391,5 +391,5 @@ const FFCodec ff_libavs3a_decoder = {
                           FF_CODEC_CAP_AUTO_THREADS,
         .flush = flush,
         .p.priv_class = &libavs3a_decoder_class,
-        .p.wrapper_name = "libavs3a",
+        .p.wrapper_name = "av3a",
 };
