@@ -53,6 +53,7 @@ extern AVCodec ff_avrn_decoder;
 extern AVCodec ff_avs_decoder;
 extern AVCodec ff_avui_encoder;
 extern AVCodec ff_avui_decoder;
+extern FFCodec ff_av3a_decoder;
 extern AVCodec ff_ayuv_encoder;
 extern AVCodec ff_ayuv_decoder;
 extern AVCodec ff_bethsoftvid_decoder;
