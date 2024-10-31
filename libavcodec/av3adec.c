@@ -350,6 +350,28 @@ static int av3a_decode_frame(AVCodecContext *avctx, void *data,
         frame->sample_rate = avctx->sample_rate;
         frame->channels = avctx->channels;
 
+        //add by
+        frame->channel_layout = av_get_default_channel_layout(avctx->channels);
+        ChannelNumConfig chconf = s->handle->channelNumConfig;
+        if(frame->channels == 1)
+            frame->channel_layout = AV_CH_LAYOUT_MONO;// need set frame->ch_payout to frame ch_out verification
+        else if(frame->channels == 2)
+            frame->channel_layout = AV_CH_LAYOUT_STEREO;// need set frame->ch_payout to frame ch_out verification
+        else if(chconf == CHANNEL_CONFIG_MC_5_1_4 && frame->channels == 10)
+            frame->channel_layout = AV_CH_LAYOUT_5POINT1POINT4_BACK;
+        else if(chconf == CHANNEL_CONFIG_MC_7_1_2 && frame->channels == 10)
+            frame->channel_layout = AV_CH_LAYOUT_7POINT1POINT2;
+        else if(chconf == CHANNEL_CONFIG_MC_7_1_4 && frame->channels == 12)
+            frame->channel_layout = AV_CH_LAYOUT_7POINT1POINT4_BACK;
+        else if(chconf == CHANNEL_CONFIG_HOA_ORDER3 && frame->channels == 16)
+            frame->channel_layout = AV_CH_LAYOUT_HEXADECAGONAL;
+        else if(chconf == CHANNEL_CONFIG_UNKNOWN)//error
+            av_log(avctx, AV_LOG_ERROR, "unknown audio chconf! Please check the source...\n");
+        avctx->channel_layout  = frame->channel_layout;//need reset avctx->ch_layout for ff_get_buffer to get correct size
+        avctx->channels = frame->channels;
+        frame->format = AV_SAMPLE_FMT_S16;
+        //end
+
         if ((ret = ff_get_buffer(avctx, frame, 0)) < 0)
             return ret;
 
@@ -380,22 +402,28 @@ static const AVClass libavs3a_decoder_class = {
         .version = LIBAVUTIL_VERSION_INT,
 };
 
-const FFCodec ff_av3a_decoder = {
-        .p.name = "libavs3a",
-        CODEC_LONG_NAME("AV3A (Advanced Audio Coding)"),
-        .p.type = AVMEDIA_TYPE_AUDIO,
-        .p.id = AV_CODEC_ID_AV3A,
+static const AVClass libavs3a_decoder_class = {
+        .class_name = "libav3a decoder",
+        .item_name = av_default_item_name,
+        .option = options,
+        .version = LIBAVUTIL_VERSION_INT,
+};
+
+AVCodec ff_av3a_decoder = {
+        .name = "av3a",
+        .long_name = NULL_IF_CONFIG_SMALL("AV3A (Advanced Audio Coding)"),
+        .type = AVMEDIA_TYPE_AUDIO,
+        .id = AV_CODEC_ID_AV3A,
         .priv_data_size = sizeof(AV3AContext),
         .init = av3a_decode_init,
         .close = av3a_decode_close,
-        FF_CODEC_DECODE_CB(av3a_decode_frame),
-        .p.sample_fmts = (const enum AVSampleFormat[]) {
+        .decode = av3a_decode_frame,
+        .sample_fmts = (const enum AVSampleFormat[]) {
                 AV_SAMPLE_FMT_S16, AV_SAMPLE_FMT_NONE
         },
-        .p.capabilities = AV_CODEC_CAP_CHANNEL_CONF | AV_CODEC_CAP_DR1,
-        .caps_internal  = FF_CODEC_CAP_NOT_INIT_THREADSAFE |
-                          FF_CODEC_CAP_AUTO_THREADS,
+        .capabilities = AV_CODEC_CAP_CHANNEL_CONF | AV_CODEC_CAP_DR1,
+        .caps_internal =  FF_CODEC_CAP_INIT_THREADSAFE | FF_CODEC_CAP_INIT_CLEANUP,
         .flush = flush,
-        .p.priv_class = &libavs3a_decoder_class,
-        .p.wrapper_name = "av3a",
+        .priv_class = &libavs3a_decoder_class,
+        .profiles = NULL_IF_CONFIG_SMALL(ff_av3a_profiles),
 };

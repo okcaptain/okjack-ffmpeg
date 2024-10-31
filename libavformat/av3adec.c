@@ -270,16 +270,16 @@ static const AVClass ff_av3a_demuxer_class = {
         .category = AV_CLASS_CATEGORY_DEMUXER,
 };
 
-const FFInputFormat ff_av3a_demuxer = {
-        .p.name = "av3a",
-        .p.long_name = NULL_IF_CONFIG_SMALL("raw av3a"),
+AVInputFormat ff_av3a_demuxer = {
+        .name = "av3a",
+        .long_name = NULL_IF_CONFIG_SMALL("raw av3a"),
         .read_probe = av3a_probe,
         .read_header = av3a_read_header,
         .read_packet = av3a_read_packet,
-        .p.flags = AVFMT_GENERIC_INDEX,
-        .p.extensions = "av3a",
-        .p.mime_type = "audio/av3a",
+        .flags = AVFMT_GENERIC_INDEX,
+        .extensions = "av3a",
+        .mime_type = "audio/av3a",
         .raw_codec_id = AV_CODEC_ID_AV3A,
         .priv_data_size = sizeof(AV3AHeader),
-        .p.priv_class = &ff_av3a_demuxer_class,
+        .priv_class = &ff_av3a_demuxer_class,
 };
