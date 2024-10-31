@@ -274,7 +274,9 @@ static av_cold int av3a_decode_init(AVCodecContext *avctx)
     AV3AContext *s = avctx->priv_data;
     s->avctx = avctx;
 
-    if (!(s->handle = Avs3AllocDecoder()))
+//    if (!(s->handle = Avs3AllocDecoder()))
+//        return AVERROR(ENOMEM);
+    if (!(s->handle = avs3_create_decoder()))
         return AVERROR(ENOMEM);
 
     s->size = 0;
@@ -297,7 +299,8 @@ static av_cold int av3a_decode_close(AVCodecContext *avctx)
     }
 
     if (s->handle) {
-        Avs3DecoderDestroy(s->handle, &s->model_fp);
+//        Avs3DecoderDestroy(s->handle, &s->model_fp);
+        avs3_destroy_decoder(s->handle);
         s->handle = NULL;
     }
     s->inited = 0;
@@ -320,7 +323,8 @@ static int av3a_decode_frame(AVCodecContext *avctx, void *data,
             return ret;
 
         if (s->inited == 0) {
-            Avs3InitDecoder(s->handle, &s->model_fp);
+//            Avs3InitDecoder(s->handle, &s->model_fp);
+            Avs3InitDecoder(s->handle, &s->model_fp, "model.bin");
             s->inited = 1;
         }
 
@@ -334,7 +338,7 @@ static int av3a_decode_frame(AVCodecContext *avctx, void *data,
         Avs3Decode(s->handle, s->data);
 
         if (s->handle->hMetadataDec && (s->handle->hMetadataDec->avs3MetaData.hasStaticMeta || s->handle->hMetadataDec->avs3MetaData.hasDynamicMeta)) {
-            AVFrameSideData * sd = av_frame_new_side_data(frame, AV_FRAME_DATA_AUDIO_VIVID_METADATA, (int)sizeof(Avs3MetaData));
+            AVFrameSideData * sd = av_frame_new_side_data(frame, AV_FRAME_DATA_DYNAMIC_HDR_VIVID, (int)sizeof(Avs3MetaData));
             if (!sd)
                 return AVERROR(ENOMEM);
             memcpy(sd->data, &s->handle->hMetadataDec->avs3MetaData, sizeof(Avs3MetaData));
