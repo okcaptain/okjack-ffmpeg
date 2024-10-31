@@ -158,6 +158,39 @@ enum AVFrameSideDataType {
      */
     AV_FRAME_DATA_QP_TABLE_DATA,
 #endif
+
+    /**
+     * HDR dynamic metadata associated with a video frame. The payload is
+     * an AVDynamicHDRPlus type and contains information for color
+     * volume transform - application 4 of SMPTE 2094-40:2016 standard.
+     */
+    AV_FRAME_DATA_DYNAMIC_HDR_PLUS,
+
+    /**
+    * Regions Of Interest, the data is an array of AVRegionOfInterest type, the number of
+    * array element is implied by AVFrameSideData.size / AVRegionOfInterest.self_size.
+    */
+    AV_FRAME_DATA_REGIONS_OF_INTEREST,
+
+    /**
+    * Encoding parameters for a video frame, as described by AVVideoEncParams.
+    */
+    AV_FRAME_DATA_VIDEO_ENC_PARAMS,
+
+    /**
+     * User data unregistered metadata associated with a video frame.
+     * This is the H.26[45] UDU SEI message, and shouldn't be used for any other purpose
+     * The data is stored as uint8_t in AVFrameSideData.data which is 16 bytes of
+     * uuid_iso_iec_11578 followed by AVFrameSideData.size - 16 bytes of user_data_payload_byte.
+     */
+    AV_FRAME_DATA_SEI_UNREGISTERED,
+
+    /**
+     * HDR Vivid dynamic metadata associated with a video frame. The payload is
+     * an AVDynamicHDRVivid type and contains information for color
+     * volume transform - CUVA 005.1-2021.
+     */
+    AV_FRAME_DATA_DYNAMIC_HDR_VIVID,
 };
 
 enum AVActiveFormatDescription {
