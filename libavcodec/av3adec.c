@@ -402,13 +402,6 @@ static const AVClass libavs3a_decoder_class = {
         .version = LIBAVUTIL_VERSION_INT,
 };
 
-static const AVClass libavs3a_decoder_class = {
-        .class_name = "libav3a decoder",
-        .item_name = av_default_item_name,
-        .option = options,
-        .version = LIBAVUTIL_VERSION_INT,
-};
-
 AVCodec ff_av3a_decoder = {
         .name = "av3a",
         .long_name = NULL_IF_CONFIG_SMALL("AV3A (Advanced Audio Coding)"),
