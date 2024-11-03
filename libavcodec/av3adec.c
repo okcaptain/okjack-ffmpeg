@@ -411,12 +411,12 @@ AVCodec ff_av3a_decoder = {
         .init = av3a_decode_init,
         .close = av3a_decode_close,
         .decode = av3a_decode_frame,
-        .sample_fmts = (const enum AVSampleFormat[]) {
-                AV_SAMPLE_FMT_S16, AV_SAMPLE_FMT_NONE
-        },
+//        .sample_fmts = (const enum AVSampleFormat[]) {
+//                AV_SAMPLE_FMT_S16, AV_SAMPLE_FMT_NONE
+//        },
         .capabilities = AV_CODEC_CAP_CHANNEL_CONF | AV_CODEC_CAP_DR1,
         .caps_internal =  FF_CODEC_CAP_INIT_THREADSAFE | FF_CODEC_CAP_INIT_CLEANUP,
         .flush = flush,
         .priv_class = &libavs3a_decoder_class,
-        .profiles = NULL_IF_CONFIG_SMALL(ff_av3a_profiles),
+//        .profiles = NULL_IF_CONFIG_SMALL(ff_av3a_profiles),
 };
