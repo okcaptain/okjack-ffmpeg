@@ -376,7 +376,7 @@ static int av3a_decode_frame(AVCodecContext *avctx, void *data,
             return ret;
 
         memcpy(frame->data[0], s->data, frame->linesize[0]);
-//        memset(s->data, 0, s->size);
+        memset(s->data, 0, s->size);
 
         *got_frame_ptr = 1;
         return s->header_bytes + s->frame_bytes;
