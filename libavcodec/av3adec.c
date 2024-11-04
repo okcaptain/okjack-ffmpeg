@@ -371,16 +371,17 @@ static int av3a_decode_frame(AVCodecContext *avctx, void *data,
 
         uint8_t **out_samples = NULL;
         int out_linesize;
-        int out_samples_count = swr_get_out_samples(swr_ctx, frame->nb_samples);
+        int out_samples_count = swr_get_out_samples(swr_ctx, avctx->frame_size);
         av_samples_alloc_array_and_samples(&out_samples, &out_linesize,
                                            avctx->channels, out_samples_count,
                                            avctx->sample_fmt, 0);
 
         int resampled_samples = swr_convert(swr_ctx, out_samples, out_samples_count,
-                (const uint8_t **)&s->data, frame->nb_samples);
+                (const uint8_t **)&s->data, avctx->frame_size);
 
         // --- End of Sample Rate Conversion ---
 
+        frame->nb_samples = avctx->frame_size;
         frame->sample_rate = 44100;
         frame->channels = avctx->channels;
 
