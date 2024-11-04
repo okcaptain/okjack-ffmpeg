@@ -330,7 +330,8 @@ static int av3a_decode_frame(AVCodecContext *avctx, void *data,
             s->inited = 1;
         }
 
-        memcpy(s->handle->hBitstream, avpkt->data + s->header_bytes, s->frame_bytes);
+
+        memcpy(s->handle->hBitstream->bitstream, avpkt->data + s->header_bytes, s->frame_bytes);
 
         if (!s->data) {
             s->size = (size_t)avctx->channels * (size_t)avctx->frame_size * sizeof(int16_t);
@@ -349,7 +350,7 @@ static int av3a_decode_frame(AVCodecContext *avctx, void *data,
 
         ResetBitstream(s->handle->hBitstream);
 
-        frame->nb_samples = 1024;
+        frame->nb_samples = avctx->frame_size;
         frame->sample_rate = avctx->sample_rate;
         frame->channels = avctx->channels;
         frame->channel_layout = avctx->channel_layout;
@@ -357,7 +358,7 @@ static int av3a_decode_frame(AVCodecContext *avctx, void *data,
 
         if ((ret = ff_get_buffer(avctx, frame, 0)) < 0)
             return ret;
-        memcpy(frame->data[0], s->data, s->size);
+        memcpy(frame->data[0], s->data, s->handle->numChansOutput*s->handle->frameLength * 2);
 //        memset(s->data, 0, s->size);
 
         *got_frame_ptr = 1;
