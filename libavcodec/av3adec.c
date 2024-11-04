@@ -340,60 +340,24 @@ static int av3a_decode_frame(AVCodecContext *avctx, void *data,
         Avs3Decode(s->handle, s->data);
 
         if (s->handle->hMetadataDec && (s->handle->hMetadataDec->avs3MetaData.hasStaticMeta || s->handle->hMetadataDec->avs3MetaData.hasDynamicMeta)) {
-            AVFrameSideData * sd = av_frame_new_side_data(frame, AV_FRAME_DATA_DYNAMIC_HDR_VIVID, (int)sizeof(Avs3MetaData));
+            AVFrameSideData *sd = av_frame_new_side_data(frame, AV_FRAME_DATA_DYNAMIC_HDR_VIVID, (int)sizeof(Avs3MetaData));
             if (!sd)
                 return AVERROR(ENOMEM);
             memcpy(sd->data, &s->handle->hMetadataDec->avs3MetaData, sizeof(Avs3MetaData));
+            frame->side_data = sd;
         }
 
         ResetBitstream(s->handle->hBitstream);
 
-        // --- Sample Rate Conversion ---
-        SwrContext *swr_ctx = swr_alloc();
-        if (!swr_ctx) {
-            av_log(avctx, AV_LOG_ERROR, "Could not allocate resampling context\n");
-            return AVERROR(ENOMEM);
-        }
-
-        av_opt_set_int(swr_ctx, "in_channel_layout",  avctx->channel_layout, 0);
-        av_opt_set_int(swr_ctx, "in_sample_rate",     avctx->sample_rate, 0);
-        av_opt_set_sample_fmt(swr_ctx, "in_sample_fmt",  avctx->sample_fmt, 0);
-
-        av_opt_set_int(swr_ctx, "out_channel_layout", avctx->channel_layout, 0);
-        av_opt_set_int(swr_ctx, "out_sample_rate",    44100, 0); // Target sample rate
-        av_opt_set_sample_fmt(swr_ctx, "out_sample_fmt", avctx->sample_fmt, 0);
-
-        if (swr_init(swr_ctx) < 0) {
-            av_log(avctx, AV_LOG_ERROR, "Could not initialize resampling context\n");
-            swr_free(&swr_ctx);
-            return AVERROR(EINVAL);
-        }
-
-        uint8_t **out_samples = NULL;
-        int out_linesize;
-        int out_samples_count = swr_get_out_samples(swr_ctx, avctx->frame_size);
-        av_samples_alloc_array_and_samples(&out_samples, &out_linesize,
-                                           avctx->channels, out_samples_count,
-                                           avctx->sample_fmt, 0);
-
-        int resampled_samples = swr_convert(swr_ctx, out_samples, out_samples_count,
-                (const uint8_t **)&s->data, avctx->frame_size);
-
-        // --- End of Sample Rate Conversion ---
-
-        frame->nb_samples = avctx->frame_size;
-        frame->sample_rate = 44100;
+        frame->nb_samples = 1024;
+        frame->sample_rate = avctx->sample_rate;
         frame->channels = avctx->channels;
-
         frame->channel_layout = avctx->channel_layout;
         frame->format = avctx->sample_fmt;
 
         if ((ret = ff_get_buffer(avctx, frame, 0)) < 0)
             return ret;
-
-        memcpy(frame->data[0], out_samples[0], resampled_samples * avctx->channels * av_get_bytes_per_sample(avctx->sample_fmt));
-
-//        memcpy(frame->data[0], s->data, s->size);
+        memcpy(frame->data[0], s->data, s->size);
 //        memset(s->data, 0, s->size);
 
         swr_free(&swr_ctx);
