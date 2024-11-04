@@ -4,6 +4,8 @@
 #include "avs3_stat_dec.h"
 #include "avs3_decoder_interface.h"
 
+#include "libswresample/swresample.h"
+#include "libavutil/samplefmt.h"
 #include "libavutil/log.h"
 #include "libavutil/opt.h"
 #include "avcodec.h"
@@ -346,41 +348,55 @@ static int av3a_decode_frame(AVCodecContext *avctx, void *data,
 
         ResetBitstream(s->handle->hBitstream);
 
-        frame->nb_samples = avctx->frame_size;
+        // --- Sample Rate Conversion ---
+        SwrContext *swr_ctx = swr_alloc();
+        if (!swr_ctx) {
+            av_log(avctx, AV_LOG_ERROR, "Could not allocate resampling context\n");
+            return AVERROR(ENOMEM);
+        }
+
+        av_opt_set_int(swr_ctx, "in_channel_layout",  avctx->channel_layout, 0);
+        av_opt_set_int(swr_ctx, "in_sample_rate",     avctx->sample_rate, 0);
+        av_opt_set_sample_fmt(swr_ctx, "in_sample_fmt",  avctx->sample_fmt, 0);
+
+        av_opt_set_int(swr_ctx, "out_channel_layout", avctx->channel_layout, 0);
+        av_opt_set_int(swr_ctx, "out_sample_rate",    44100, 0); // Target sample rate
+        av_opt_set_sample_fmt(swr_ctx, "out_sample_fmt", avctx->sample_fmt, 0);
+
+        if (swr_init(swr_ctx) < 0) {
+            av_log(avctx, AV_LOG_ERROR, "Could not initialize resampling context\n");
+            swr_free(&swr_ctx);
+            return AVERROR(EINVAL);
+        }
+
+        uint8_t **out_samples = NULL;
+        int out_linesize;
+        int out_samples_count = swr_get_out_samples(swr_ctx, frame->nb_samples);
+        av_samples_alloc_array_and_samples(&out_samples, &out_linesize,
+                                           avctx->channels, out_samples_count,
+                                           avctx->sample_fmt, 0);
+
+        int resampled_samples = swr_convert(swr_ctx, out_samples, out_samples_count,
+                (const uint8_t **)&s->data, frame->nb_samples);
+
+        // --- End of Sample Rate Conversion ---
+
         frame->sample_rate = avctx->sample_rate;
         frame->channels = avctx->channels;
 
         frame->channel_layout = avctx->channel_layout;
         frame->format = avctx->sample_fmt;
 
-//        //add by
-//        frame->channel_layout = av_get_default_channel_layout(avctx->channels);
-//        ChannelNumConfig chconf = s->handle->channelNumConfig;
-//        if(frame->channels == 1)
-//            frame->channel_layout = AV_CH_LAYOUT_MONO;// need set frame->ch_payout to frame ch_out verification
-//        else if(frame->channels == 2)
-//            frame->channel_layout = AV_CH_LAYOUT_STEREO;// need set frame->ch_payout to frame ch_out verification
-//        else if(chconf == CHANNEL_CONFIG_MC_5_1_2 && frame->channels == 8)
-//            frame->channel_layout = AV_CH_LAYOUT_5POINT1POINT2_BACK;
-//        else if(chconf == CHANNEL_CONFIG_MC_5_1_4 && frame->channels == 10)
-//            frame->channel_layout = AV_CH_LAYOUT_5POINT1POINT4_BACK;
-//        else if(chconf == CHANNEL_CONFIG_MC_7_1_2 && frame->channels == 10)
-//            frame->channel_layout = AV_CH_LAYOUT_7POINT1POINT2;
-//        else if(chconf == CHANNEL_CONFIG_MC_7_1_4 && frame->channels == 12)
-//            frame->channel_layout = AV_CH_LAYOUT_7POINT1POINT4_BACK;
-//        else if(chconf == CHANNEL_CONFIG_HOA_ORDER3 && frame->channels == 16)
-//            frame->channel_layout = AV_CH_LAYOUT_HEXADECAGONAL;
-//        else if(chconf == CHANNEL_CONFIG_UNKNOWN)//error
-//            av_log(avctx, AV_LOG_ERROR, "unknown audio chconf! Please check the source...\n");
-//        avctx->channel_layout  = frame->channel_layout;//need reset avctx->ch_layout for ff_get_buffer to get correct size
-//        avctx->channels = frame->channels;
-//        frame->format = AV_SAMPLE_FMT_S16;
-//        //end
-
         if ((ret = ff_get_buffer(avctx, frame, 0)) < 0)
             return ret;
-        memcpy(frame->data[0], s->data, s->size);
+
+        memcpy(frame->data[0], out_samples[0], resampled_samples * avctx->channels * av_get_bytes_per_sample(avctx->sample_fmt));
+
+//        memcpy(frame->data[0], s->data, s->size);
 //        memset(s->data, 0, s->size);
+
+        swr_free(&swr_ctx);
+        av_freep(&out_samples[0]);
 
         *got_frame_ptr = 1;
 //        return s->header_bytes + s->frame_bytes;
