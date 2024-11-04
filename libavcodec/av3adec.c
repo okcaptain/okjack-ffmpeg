@@ -381,7 +381,7 @@ static int av3a_decode_frame(AVCodecContext *avctx, void *data,
 
         // --- End of Sample Rate Conversion ---
 
-        frame->sample_rate = avctx->sample_rate;
+        frame->sample_rate = 44100;
         frame->channels = avctx->channels;
 
         frame->channel_layout = avctx->channel_layout;
