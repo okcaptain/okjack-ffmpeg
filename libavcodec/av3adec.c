@@ -360,9 +360,6 @@ static int av3a_decode_frame(AVCodecContext *avctx, void *data,
         memcpy(frame->data[0], s->data, s->size);
 //        memset(s->data, 0, s->size);
 
-        swr_free(&swr_ctx);
-        av_freep(&out_samples[0]);
-
         *got_frame_ptr = 1;
 //        return s->header_bytes + s->frame_bytes;
         return avpkt->size;
