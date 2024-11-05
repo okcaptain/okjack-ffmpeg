@@ -334,30 +334,32 @@ static int av3a_decode_frame(AVCodecContext *avctx, void *data, int *got_frame_p
                 memcpy(&h->m_LastMetaData, h->out_frame.pMeta, sizeof(h->m_LastMetaData));//更新meta data
             }
 
-            frm->nb_samples = 1024;
-            frm->sample_rate = h->out_frame.nSamplerate;
-            frm->channels = h->out_frame.nChannel;
-            frm->channel_layout = av_get_default_channel_layout(h->out_frame.nChannel);
             ChannelNumConfig chconf = (ChannelNumConfig)h->out_frame.nChCfg;
-            if(h->out_frame.nChannel == 1)
-                frm->channel_layout = AV_CH_LAYOUT_MONO;// need set frame->ch_payout to frame ch_out verification
-            else if(h->out_frame.nChannel == 2)
-                frm->channel_layout = AV_CH_LAYOUT_STEREO;// need set frame->ch_payout to frame ch_out verification
-            else if(chconf == CHANNEL_CONFIG_MC_5_1_4 && h->out_frame.nChannel == 10)
-                frm->channel_layout = AV_CH_LAYOUT_5POINT1POINT4_BACK;
-            else if(chconf == CHANNEL_CONFIG_MC_7_1_2 && h->out_frame.nChannel == 10)
-                frm->channel_layout = AV_CH_LAYOUT_7POINT1POINT2;
-            else if(chconf == CHANNEL_CONFIG_MC_7_1_4 && h->out_frame.nChannel == 12)
-                frm->channel_layout = AV_CH_LAYOUT_7POINT1POINT4_BACK;
-            else if(chconf == CHANNEL_CONFIG_HOA_ORDER3 && h->out_frame.nChannel == 16)
-                frm->channel_layout = AV_CH_LAYOUT_HEXADECAGONAL;
-            else if(chconf == CHANNEL_CONFIG_UNKNOWN)//error
+            if(h->out_frame.nChannel == 1 || avctx->request_channel_layout == AV_CH_LAYOUT_MONO) {
+                avctx->channels = 1;
+                avctx->channel_layout = AV_CH_LAYOUT_MONO;// need set frame->ch_payout to frame ch_out verification
+            } else if(h->out_frame.nChannel == 2 || avctx->request_channel_layout == AV_CH_LAYOUT_STEREO) {
+                avctx->channels = 2;
+                avctx->channel_layout = AV_CH_LAYOUT_STEREO;// need set frame->ch_payout to frame ch_out verification
+            } else if(chconf == CHANNEL_CONFIG_MC_5_1_4 && h->out_frame.nChannel == 10) {
+                avctx->channels = h->out_frame.nChannel;
+                avctx->channel_layout = AV_CH_LAYOUT_5POINT1POINT4_BACK;
+            } else if(chconf == CHANNEL_CONFIG_MC_7_1_2 && h->out_frame.nChannel == 10) {
+                avctx->channels = h->out_frame.nChannel;
+                avctx->channel_layout = AV_CH_LAYOUT_7POINT1POINT2;
+            } else if(chconf == CHANNEL_CONFIG_MC_7_1_4 && h->out_frame.nChannel == 12) {
+                avctx->channels = h->out_frame.nChannel;
+                avctx->channel_layout = AV_CH_LAYOUT_7POINT1POINT4_BACK;
+            } else if(chconf == CHANNEL_CONFIG_HOA_ORDER3 && h->out_frame.nChannel == 16) {
+                avctx->channels = h->out_frame.nChannel;
+                avctx->channel_layout = AV_CH_LAYOUT_HEXADECAGONAL;
+            } else if(chconf == CHANNEL_CONFIG_UNKNOWN) {
                 av_log(avctx, AV_LOG_ERROR, "unknown audio chconf! Please check the source...\n");
-            avctx->channel_layout  = frm->channel_layout;//need reset avctx->ch_layout for ff_get_buffer to get correct size
-            avctx->channels = h->out_frame.nChannel;
-            avctx->sample_rate = frm->sample_rate;
+            }
+            //need reset avctx->ch_layout for ff_get_buffer to get correct size
+            avctx->sample_rate = h->out_frame.nSamplerate;
 
-            frm->format = AV_SAMPLE_FMT_S16;
+            frm->nb_samples = avctx->frame_size;
             av_log(avctx, AV_LOG_DEBUG, " before ff_get_buffer! h->out_frame.nlen %ld\n", h->out_frame.nlen);
             ret = ff_get_buffer(avctx, frm, 0);//will copy frm->ch_layout from avctx->ch_layout
             if (ret < 0){
@@ -402,8 +404,11 @@ AVCodec ff_av3a_decoder = {
         .init = av3a_decode_init,
         .close = av3a_decode_close,
         .decode = av3a_decode_frame,
+        .sample_fmts = (const enum AVSampleFormat[]) {
+                AV_SAMPLE_FMT_S16, AV_SAMPLE_FMT_NONE
+        },
         .capabilities = AV_CODEC_CAP_CHANNEL_CONF | AV_CODEC_CAP_DR1,
-        .caps_internal =  FF_CODEC_CAP_INIT_THREADSAFE | FF_CODEC_CAP_INIT_CLEANUP,
+        .caps_internal = FF_CODEC_CAP_INIT_CLEANUP,
         .flush = av3a_decode_flush,
         .priv_class = &libavs3a_decoder_class,
 };
