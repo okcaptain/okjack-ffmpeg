@@ -371,8 +371,7 @@ static av_cold int av3a_decode_close(AVCodecContext *avctx)
     if(h->out_frame.pOutData)
         av_freep(&h->out_frame.pOutData);
     av_log(avctx, AV_LOG_DEBUG, "free out_frame.pOutData end!\n");
-    if(h->m_pRenderBuffer)
-        av_freep(&h->m_pRenderBuffer);
+
     av_log(avctx, AV_LOG_DEBUG, "arcdav3a_decode_close end!\n");
     return 0;
 }
