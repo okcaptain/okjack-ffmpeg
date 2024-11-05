@@ -51,6 +51,78 @@ typedef struct av3a_context
 
 } av3a_context;
 
+static av_cold int av3a_decode_init(AVCodecContext *avctx)
+{
+    av_log(avctx, AV_LOG_DEBUG, "begin av3a_decode_init!\n");
+    av3a_context *h = avctx->priv_data;
+    avctx->sample_fmt = AV_SAMPLE_FMT_S16;//for find_stream_info port to reduce time consuming
+    //avctx->ch_layout  = (AVChannelLayout)AV_CHANNEL_LAYOUT_STEREO;
+    if (!h->m_hAvs3)
+        h->m_hAvs3 = avs3_create_decoder();
+
+    h->m_lastChCfg = -1;
+    h->m_lastObjcnt = -1;
+    h->m_lastMixtype = -1;
+    h->m_lastBitrateTotal = -1;
+    h->m_bFirstFrame = true;
+    h->m_dwDataLen = 0;
+    h->m_pBuffer = NULL;
+    h->m_dwBufferSize = 0;
+
+    memset(&h->m_LastMetaData, 0, sizeof(h->m_LastMetaData));
+    memset(&h->out_frame, 0, sizeof(AVS3DecoderOutput));
+    h->out_frame.pOutData = av_malloc(MAX_VIVID_SIZE*sizeof(unsigned char));
+    memset(h->out_frame.pOutData, 0, MAX_VIVID_SIZE*sizeof(unsigned char));
+
+    av_log(avctx, AV_LOG_DEBUG, "end av3a_decode_init!\n");
+    return 0;
+}
+
+static av_cold void av3a_decode_flush(AVCodecContext *avctx)
+{
+    av_log(avctx, AV_LOG_DEBUG, "begin  av3a_decode_flush!\n");
+    av3a_context *h = avctx->priv_data;
+    if (h->m_hAvs3)
+        avs3_destroy_decoder(h->m_hAvs3);
+    av_log(avctx, AV_LOG_DEBUG, "av3a_decode_flush! avs3_destroy_decoder end!\n");
+    h->m_hAvs3 = 0;
+    h->m_hAvs3 = avs3_create_decoder();
+    av_log(avctx, AV_LOG_DEBUG, "av3a_decode_flush! avs3_create_decoder end!\n");
+    h->m_bFirstFrame = true;
+    h->m_dwDataLen = 0;
+    h->m_lastChCfg = -1;
+    h->m_lastObjcnt = -1;
+    h->m_lastMixtype = -1;
+    h->m_lastBitrateTotal = -1;
+    av_log(avctx, AV_LOG_DEBUG, "end  arcdav3a_decode_flush!\n");
+}
+
+static av_cold int av3a_decode_close(AVCodecContext *avctx)
+{
+    av_log(avctx, AV_LOG_DEBUG, "av3a_decode_close begin!\n");
+    av3a_context *h = avctx->priv_data;
+    if(h == NULL)
+    {
+        av_log(avctx, AV_LOG_DEBUG, "av3a_context is NULL!\n");
+        return 0;
+    }
+    if (h->m_hAvs3)
+        avs3_destroy_decoder(h->m_hAvs3);
+    av_log(avctx, AV_LOG_DEBUG, "avs3_destroy_decoder end!\n");
+
+    h->m_hAvs3 = NULL;
+
+    if(h->m_pBuffer)
+        av_freep(&h->m_pBuffer);
+    av_log(avctx, AV_LOG_DEBUG, "free h->m_pBuffer end!\n");
+    if(h->out_frame.pOutData)
+        av_freep(&h->out_frame.pOutData);
+    av_log(avctx, AV_LOG_DEBUG, "free out_frame.pOutData end!\n");
+
+    av_log(avctx, AV_LOG_DEBUG, "arcdav3a_decode_close end!\n");
+    return 0;
+}
+
 static int dav3a_decode_frame(AVCodecContext *avctx, const char * pIn, unsigned long lenIn, unsigned long* lenConsumed, AVS3DecoderOutput* pOut)
 {
     av_log(avctx, AV_LOG_DEBUG, "begin  dav3a_decode_frame!\n");
@@ -146,7 +218,7 @@ static int dav3a_decode_frame(AVCodecContext *avctx, const char * pIn, unsigned 
         {
             pos = h->m_dwDataLen;
             ret = AVS3_DATA_NOT_ENOUGH;
-            av_log(avctx, AV_LOG_DEBUG, "pos + consumed >= m_dwDataLen\n", pos, consumed, h->m_dwDataLen);
+            av_log(avctx, AV_LOG_DEBUG, "pos:%d + consumed:%d >= m_dwDataLen:%ld\n", pos, consumed, h->m_dwDataLen);
             break;
         }
         //reset end!
@@ -253,7 +325,6 @@ static int av3a_decode_frame(AVCodecContext *avctx, void *data, int *got_frame_p
             if (h->out_frame.pMeta && memcmp(h->out_frame.pMeta, &h->m_LastMetaData, sizeof(h->m_LastMetaData)) != 0)//metadata发生变化
             {
                 memcpy(&h->m_LastMetaData, h->out_frame.pMeta, sizeof(h->m_LastMetaData));//更新meta data
-                h->m_bGotMD = true;
             }
 
             frm->nb_samples = 1024;
@@ -302,78 +373,6 @@ static int av3a_decode_frame(AVCodecContext *avctx, void *data, int *got_frame_p
     }
     //return AVERROR(EAGAIN);
     return avpkt->size;
-}
-
-static av_cold int av3a_decode_init(AVCodecContext *avctx)
-{
-    av_log(avctx, AV_LOG_DEBUG, "begin av3a_decode_init!\n");
-    av3a_context *h = avctx->priv_data;
-    avctx->sample_fmt = AV_SAMPLE_FMT_S16;//for find_stream_info port to reduce time consuming
-    //avctx->ch_layout  = (AVChannelLayout)AV_CHANNEL_LAYOUT_STEREO;
-    if (!h->m_hAvs3)
-        h->m_hAvs3 = avs3_create_decoder();
-
-    h->m_lastChCfg = -1;
-    h->m_lastObjcnt = -1;
-    h->m_lastMixtype = -1;
-    h->m_lastBitrateTotal = -1;
-    h->m_bFirstFrame = true;
-    h->m_dwDataLen = 0;
-    h->m_pBuffer = NULL;
-    h->m_dwBufferSize = 0;
-
-    memset(&h->m_LastMetaData, 0, sizeof(h->m_LastMetaData));
-    memset(&h->out_frame, 0, sizeof(AVS3DecoderOutput));
-    h->out_frame.pOutData = av_malloc(MAX_VIVID_SIZE*sizeof(unsigned char));
-    memset(h->out_frame.pOutData, 0, MAX_VIVID_SIZE*sizeof(unsigned char));
-
-    av_log(avctx, AV_LOG_DEBUG, "end av3a_decode_init!\n");
-    return 0;
-}
-
-static av_cold void av3a_decode_flush(AVCodecContext *avctx)
-{
-    av_log(avctx, AV_LOG_DEBUG, "begin  av3a_decode_flush!\n");
-    av3a_context *h = avctx->priv_data;
-    if (h->m_hAvs3)
-        avs3_destroy_decoder(h->m_hAvs3);
-    av_log(avctx, AV_LOG_DEBUG, "av3a_decode_flush! avs3_destroy_decoder end!\n");
-    h->m_hAvs3 = 0;
-    h->m_hAvs3 = avs3_create_decoder();
-    av_log(avctx, AV_LOG_DEBUG, "av3a_decode_flush! avs3_create_decoder end!\n");
-    h->m_bFirstFrame = true;
-    h->m_dwDataLen = 0;
-    h->m_lastChCfg = -1;
-    h->m_lastObjcnt = -1;
-    h->m_lastMixtype = -1;
-    h->m_lastBitrateTotal = -1;
-    av_log(avctx, AV_LOG_DEBUG, "end  arcdav3a_decode_flush!\n");
-}
-
-static av_cold int av3a_decode_close(AVCodecContext *avctx)
-{
-    av_log(avctx, AV_LOG_DEBUG, "av3a_decode_close begin!\n");
-    av3a_context *h = avctx->priv_data;
-    if(h == NULL)
-    {
-        av_log(avctx, AV_LOG_DEBUG, "av3a_context is NULL!\n");
-        return 0;
-    }
-    if (h->m_hAvs3)
-        avs3_destroy_decoder(h->m_hAvs3);
-    av_log(avctx, AV_LOG_DEBUG, "avs3_destroy_decoder end!\n");
-
-    h->m_hAvs3 = NULL;
-
-    if(h->m_pBuffer)
-        av_freep(&h->m_pBuffer);
-    av_log(avctx, AV_LOG_DEBUG, "free h->m_pBuffer end!\n");
-    if(h->out_frame.pOutData)
-        av_freep(&h->out_frame.pOutData);
-    av_log(avctx, AV_LOG_DEBUG, "free out_frame.pOutData end!\n");
-
-    av_log(avctx, AV_LOG_DEBUG, "arcdav3a_decode_close end!\n");
-    return 0;
 }
 
 static const AVOption options[] = {
