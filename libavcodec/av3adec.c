@@ -222,11 +222,12 @@ static int dav3a_decode_frame(AVCodecContext *avctx, const char * pIn, unsigned 
     return ret;
 }
 
-static int av3a_decode_frame(AVCodecContext *avctx, AVFrame *frm, int *got_frame_ptr, AVPacket *avpkt)
+static int av3a_decode_frame(AVCodecContext *avctx, void *data, int *got_frame_ptr, AVPacket *avpkt)
 {
     av_log(avctx, AV_LOG_DEBUG, "begin av3a_receive_frame!\n");
     av3a_context *h = avctx->priv_data;
     int ret;
+    AVFrame *frm = (AVFrame*)data;
     *got_frame_ptr = 0;
 
     //unsigned char pbIn[2048] = {0};
