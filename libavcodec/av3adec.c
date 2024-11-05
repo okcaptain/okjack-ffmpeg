@@ -335,7 +335,7 @@ static int av3a_decode_frame(AVCodecContext *avctx, void *data, int *got_frame_p
             }
 
             frm->nb_samples = 1024;
-            frm->sample_rate = h->out_frame.nSamplerate;
+//            frm->sample_rate = h->out_frame.nSamplerate;
             frm->channels = h->out_frame.nChannel;
             frm->channel_layout = av_get_default_channel_layout(h->out_frame.nChannel);
             ChannelNumConfig chconf = (ChannelNumConfig)h->out_frame.nChCfg;
@@ -355,7 +355,8 @@ static int av3a_decode_frame(AVCodecContext *avctx, void *data, int *got_frame_p
                 av_log(avctx, AV_LOG_ERROR, "unknown audio chconf! Please check the source...\n");
             avctx->channel_layout  = frm->channel_layout;//need reset avctx->ch_layout for ff_get_buffer to get correct size
             avctx->channels = h->out_frame.nChannel;
-            avctx->sample_rate = frm->sample_rate;
+//            avctx->sample_rate = frm->sample_rate;
+            avctx->sample_rate = h->out_frame.nSamplerate;
 
             frm->format = AV_SAMPLE_FMT_S16;
             av_log(avctx, AV_LOG_DEBUG, " before ff_get_buffer! h->out_frame.nlen %ld\n", h->out_frame.nlen);
