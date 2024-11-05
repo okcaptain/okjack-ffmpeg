@@ -359,7 +359,10 @@ static int av3a_decode_frame(AVCodecContext *avctx, void *data, int *got_frame_p
             //need reset avctx->ch_layout for ff_get_buffer to get correct size
             avctx->sample_rate = h->out_frame.nSamplerate;
 
+            frm->channels = avctx->channels;
+            frm->channel_layout = avctx->channel_layout;
             frm->nb_samples = avctx->frame_size;
+            frm->format = avctx->sample_fmt;
             av_log(avctx, AV_LOG_DEBUG, " before ff_get_buffer! h->out_frame.nlen %ld\n", h->out_frame.nlen);
             ret = ff_get_buffer(avctx, frm, 0);//will copy frm->ch_layout from avctx->ch_layout
             if (ret < 0){
