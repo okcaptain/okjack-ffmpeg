@@ -333,7 +333,7 @@ static int av3a_decode_frame(AVCodecContext *avctx, void *data, int *got_frame_p
                 memcpy(&h->m_LastMetaData, h->out_frame.pMeta, sizeof(h->m_LastMetaData));//更新meta data
             }
 
-            frm->nb_samples = avctx->frame_size;
+            frm->nb_samples = 1024;
             frm->sample_rate = h->out_frame.nSamplerate;
             frm->channels = h->out_frame.nChannel;
 
