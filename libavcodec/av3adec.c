@@ -334,7 +334,7 @@ static int av3a_decode_frame(AVCodecContext *avctx, void *data, int *got_frame_p
                 memcpy(&h->m_LastMetaData, h->out_frame.pMeta, sizeof(h->m_LastMetaData));//更新meta data
             }
 
-            frm->nb_samples = 1024;
+            frm->nb_samples = avctx->frame_size;
             frm->sample_rate = h->out_frame.nSamplerate;
             frm->channels = h->out_frame.nChannel;
             frm->channel_layout = av_get_default_channel_layout(h->out_frame.nChannel);
@@ -358,21 +358,63 @@ static int av3a_decode_frame(AVCodecContext *avctx, void *data, int *got_frame_p
             avctx->sample_rate = frm->sample_rate;
 
             frm->format = AV_SAMPLE_FMT_S16;
-            av_log(avctx, AV_LOG_DEBUG, " before ff_get_buffer! h->out_frame.nlen %ld\n", h->out_frame.nlen);
-            ret = ff_get_buffer(avctx, frm, 0);//will copy frm->ch_layout from avctx->ch_layout
+
+            //add
+            SwrContext *swr_ctx = swr_alloc();
+            if (!swr_ctx) {
+                av_log(avctx, AV_LOG_DEBUG,"Could not allocate resampling context\n");
+                return AVERROR(ENOMEM);
+            }
+
+            av_opt_set_int(swr_ctx, "in_channel_layout",  frm->channel_layout, 0);
+            av_opt_set_int(swr_ctx, "in_sample_rate",     frm->sample_rate, 0);
+            av_opt_set_sample_fmt(swr_ctx, "in_sample_fmt",  frm->format, 0);
+
+            av_opt_set_int(swr_ctx, "out_channel_layout", frm->channel_layout, 0);
+            av_opt_set_int(swr_ctx, "out_sample_rate",    44100, 0); // Target sample rate
+            av_opt_set_sample_fmt(swr_ctx, "out_sample_fmt", frm->format, 0);
+
+            if (swr_init(swr_ctx) < 0) {
+                av_log(avctx, AV_LOG_DEBUG,"Could not initialize resampling context\n");
+                swr_free(&swr_ctx);
+                return AVERROR(EINVAL);
+            }
+
+            frm->sample_rate = 44100;
+            ret = ff_get_buffer(avctx, frm, 0);
             if (ret < 0){
                 av_log(avctx, AV_LOG_DEBUG, "ff_get_buffer error!\n");
                 return ret;
             }
 
-            if(h->out_frame.nlen > 0)
-            {
-                av_log(avctx, AV_LOG_DEBUG, "begin copy buffer!\n");
-                memcpy(frm->data[0], h->out_frame.pOutData, h->out_frame.nlen);
-                av_log(avctx, AV_LOG_DEBUG, "end copy buffer!\n");
+            uint8_t **out_samples = NULL;
+            int out_linesize;
+            int out_samples_count = swr_get_out_samples(swr_ctx, frm->nb_samples);
+            av_samples_alloc_array_and_samples(&out_samples, &out_linesize,
+                                               frm->channels, out_samples_count,
+                                               frm->format, 0);
 
-                *got_frame_ptr = 1;
-            }
+            int resampled_samples = swr_convert(swr_ctx, out_samples, out_samples_count,
+                    (const uint8_t **)&h->out_frame.pOutData, frm->nb_samples);
+
+            memcpy(frm->data[0], out_samples[0], resampled_samples * frm->channels * av_get_bytes_per_sample(frm->format));
+            *got_frame_ptr = 1;
+            // add end
+
+//            av_log(avctx, AV_LOG_DEBUG, " before ff_get_buffer! h->out_frame.nlen %ld\n", h->out_frame.nlen);
+//            ret = ff_get_buffer(avctx, frm, 0);//will copy frm->ch_layout from avctx->ch_layout
+//            if (ret < 0){
+//                av_log(avctx, AV_LOG_DEBUG, "ff_get_buffer error!\n");
+//                return ret;
+//            }
+//
+//            if(h->out_frame.nlen > 0)
+//            {
+//                av_log(avctx, AV_LOG_DEBUG, "begin copy buffer!\n");
+//                memcpy(frm->data[0], h->out_frame.pOutData, h->out_frame.nlen);
+//                av_log(avctx, AV_LOG_DEBUG, "end copy buffer!\n");
+//                *got_frame_ptr = 1;
+//            }
         }
         av_log(avctx, AV_LOG_DEBUG, "av_packet_unref!\n");
         //av_packet_unref(avpkt);
