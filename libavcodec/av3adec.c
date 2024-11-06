@@ -1,6 +1,4 @@
 #include "avs3_cnst_com.h"
-#include "avs3_rom_com.h"
-#include "avs3_prot_dec.h"
 #include "avs3_stat_dec.h"
 #include "avs3_decoder_interface.h"
 
