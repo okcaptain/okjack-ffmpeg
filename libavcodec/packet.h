@@ -298,6 +298,14 @@ enum AVPacketSideDataType {
      * SMPTE 2094-40:2016 standard.
      */
     AV_PKT_DATA_DYNAMIC_HDR10_PLUS,
+    /**
+     * HDR Vivid dynamic metadata associated with a video frame. The metadata is in
+     * the form of the AVDynamicHDRVivid struct and contains
+     * information for color volume transform - application for CUVA 005.1 (Vivid) standard
+     */
+    AV_PKT_DATA_DYNAMIC_HDR_VIVID,
+    AV_PKT_DATA_VIVID_CUVV,
+    AV_PKT_DATA_AUDIO_VIVID,
 
     /**
      * The number of side data types.

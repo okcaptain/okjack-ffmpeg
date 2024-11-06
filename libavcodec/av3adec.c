@@ -11,6 +11,7 @@
 #include "internal.h"
 #include "codec_internal.h"
 #include "profiles.h"
+#include <unistd.h>
 #include <stdbool.h>
 
 #if ARCH_AARCH64
@@ -306,6 +307,15 @@ static int av3a_decode_frame(AVCodecContext *avctx, AVFrame *frm, int *got_frame
     av3a_context *h = avctx->priv_data;
     int ret;
     *got_frame_ptr = 0;
+
+    size_t side_data_size;
+    uint8_t *side_data;
+    side_data = av_packet_get_side_data(avpkt, AV_PKT_DATA_AUDIO_VIVID,
+                                        &side_data_size);
+
+    if(side_data && side_data_size>0){
+        av_log(avctx, AV_LOG_DEBUG, "side_data, side_data_size>0");
+    }
 
     //unsigned char pbIn[2048] = {0};
     if (avpkt->size>0)
