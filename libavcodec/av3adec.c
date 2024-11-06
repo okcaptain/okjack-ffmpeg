@@ -4,8 +4,6 @@
 #include "avs3_stat_dec.h"
 #include "avs3_decoder_interface.h"
 
-#include "libswresample/swresample.h"
-#include "libavutil/samplefmt.h"
 #include "libavutil/log.h"
 #include "libavutil/opt.h"
 #include "avcodec.h"
