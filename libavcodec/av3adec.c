@@ -343,7 +343,6 @@ static int av3a_decode_frame(AVCodecContext *avctx, void *data,
             if (!sd)
                 return AVERROR(ENOMEM);
             memcpy(sd->data, &s->handle->hMetadataDec->avs3MetaData, sizeof(Avs3MetaData));
-            frame->side_data = sd;
         }
 
         ResetBitstream(s->handle->hBitstream);
