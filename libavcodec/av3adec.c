@@ -4,8 +4,6 @@
 #include "avs3_stat_dec.h"
 #include "avs3_decoder_interface.h"
 
-#include "libswresample/swresample.h"
-#include "libavutil/samplefmt.h"
 #include "libavutil/log.h"
 #include "libavutil/opt.h"
 #include "avcodec.h"
@@ -331,7 +329,7 @@ static int av3a_decode_frame(AVCodecContext *avctx, void *data,
         }
 
 
-        memcpy(s->handle->hBitstream->bitstream, avpkt->data + s->header_bytes, s->frame_bytes);
+        memcpy(s->handle->hBitstream, avpkt->data + s->header_bytes, s->frame_bytes);
 
         if (!s->data) {
             s->size = (size_t)avctx->channels * (size_t)avctx->frame_size * sizeof(int16_t);
