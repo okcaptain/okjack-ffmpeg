@@ -220,6 +220,7 @@ External library support:
   --enable-libaribb24      enable ARIB text and caption decoding via libaribb24 [no]
   --enable-libass          enable libass subtitles rendering,
                            needed for subtitles and ass filter [no]
+  --enable-libav3ad        enable libav3ad [no]
   --enable-libbluray       enable BluRay reading using libbluray [no]
   --enable-libbs2b         enable bs2b DSP library [no]
   --enable-libcaca         enable textual display using libcaca [no]
@@ -1806,6 +1807,7 @@ EXTERNAL_LIBRARY_LIST="
     lcms2
     libaom
     libass
+    libav3ad
     libbluray
     libbs2b
     libcaca
@@ -3297,6 +3299,7 @@ amr_nb_at_decoder_deps="audiotoolbox"
 avisynth_deps_any="libdl LoadLibrary"
 avisynth_demuxer_deps="avisynth"
 avisynth_demuxer_select="riffdec"
+av3a_decoder_deps="libav3ad"
 eac3_at_decoder_deps="audiotoolbox"
 eac3_at_decoder_select="ac3_parser"
 gsm_ms_at_decoder_deps="audiotoolbox"
@@ -6570,6 +6573,7 @@ enabled libaribb24        && { check_pkg_config libaribb24 "aribb24 > 1.0.3" "ar
 enabled lv2               && require_pkg_config lv2 lilv-0 "lilv/lilv.h" lilv_world_new
 enabled libiec61883       && require libiec61883 libiec61883/iec61883.h iec61883_cmp_connect -lraw1394 -lavc1394 -lrom1394 -liec61883
 enabled libass            && require_pkg_config libass "libass >= 0.11.0" ass/ass.h ass_library_init
+enabled libav3ad          && require_pkg_config libav3ad "av3ad >= 0.1" avs3_prot_dec.h Avs3InitDecoder -lav3ad
 enabled libbluray         && require_pkg_config libbluray libbluray libbluray/bluray.h bd_open
 enabled libbs2b           && require_pkg_config libbs2b libbs2b bs2b.h bs2b_open
 enabled libcelt           && require libcelt celt/celt.h celt_decode -lcelt0 &&

@@ -40,6 +40,7 @@ extern const FFCodec ff_aasc_decoder;
 extern const FFCodec ff_aic_decoder;
 extern const FFCodec ff_alias_pix_encoder;
 extern const FFCodec ff_alias_pix_decoder;
+extern const FFCodec ff_av3a_decoder;
 extern const FFCodec ff_agm_decoder;
 extern const FFCodec ff_amv_encoder;
 extern const FFCodec ff_amv_decoder;

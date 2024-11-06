@@ -1420,6 +1420,13 @@ static const AVCodecDescriptor codec_descriptors[] = {
         .props     = AV_CODEC_PROP_LOSSY,
     },
     {
+        .id        = AV_CODEC_ID_AV3A,
+        .type      = AVMEDIA_TYPE_AUDIO,
+        .name      = "av3a",
+        .long_name = NULL_IF_CONFIG_SMALL("AV3A (Advanced Audio Coding)"),
+        .props     = AV_CODEC_PROP_LOSSY,
+    },
+    {
         .id        = AV_CODEC_ID_MSP2,
         .type      = AVMEDIA_TYPE_VIDEO,
         .name      = "msp2",
