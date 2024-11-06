@@ -385,17 +385,6 @@ static int av3a_decode_frame(AVCodecContext *avctx, AVFrame *frm, int *got_frame
     return 0;
 }
 
-static const AVOption options[] = {
-        {NULL},
-};
-
-static const AVClass libavs3a_decoder_class = {
-        .class_name = "libav3a decoder",
-        .item_name = av_default_item_name,
-        .option = options,
-        .version = LIBAVUTIL_VERSION_INT,
-};
-
 const FFCodec ff_av3a_decoder = {
         .p.name = "av3a",
         CODEC_LONG_NAME("AV3A (Advanced Audio Coding)"),
@@ -408,6 +397,5 @@ const FFCodec ff_av3a_decoder = {
         .p.capabilities = AV_CODEC_CAP_CHANNEL_CONF | AV_CODEC_CAP_DR1,
         .caps_internal  = FF_CODEC_CAP_INIT_CLEANUP,
         .flush = av3a_decode_flush,
-        .p.priv_class = &libavs3a_decoder_class,
         .p.wrapper_name = "av3a",
 };
