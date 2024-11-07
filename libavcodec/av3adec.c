@@ -10,15 +10,8 @@
 #include "decode.h"
 #include "internal.h"
 #include "codec_internal.h"
-#include "profiles.h"
 #include <unistd.h>
 #include <stdbool.h>
-
-#if ARCH_AARCH64
-#include <arm_neon.h>
-#elif ARCH_X86
-#include <emmintrin.h>
-#endif
 
 #define MAX_VIVID_SIZE 4096*64 //解码输出buffer 256k
 
