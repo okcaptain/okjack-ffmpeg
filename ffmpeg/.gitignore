@@ -1,6 +1,0 @@
-dist
-doc
-*.o
-*.d
-*.version
-ffbuild
