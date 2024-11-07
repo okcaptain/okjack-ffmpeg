@@ -396,13 +396,7 @@ static av_cold int arcdav3a_decode_close(AVCodecContext *avctx)
     if (h->m_hAvs3)
         h->avs3_destroy_decoder(h->m_hAvs3);
     av_log(avctx, AV_LOG_DEBUG, "avs3_destroy_decoder end!\n");
-    if (h->m_pRender)
-        h->DestroyRenderer(h->m_pRender);
-    av_log(avctx, AV_LOG_DEBUG, "DestroyRenderer end!\n");
 
-    if (h->renderhandle)
-        dlclose(h->renderhandle);
-    av_log(avctx, AV_LOG_DEBUG, "renderhandle close end!\n");
     h->m_hAvs3 = NULL;
     if(h->handle)
         dlclose(h->handle);
