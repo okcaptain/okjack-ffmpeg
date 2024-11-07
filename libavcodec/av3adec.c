@@ -1,12 +1,13 @@
 #include <dlfcn.h>
 #include <unistd.h>
+#include <dlfcn.h>
 #include <stdbool.h>
-#include "av3adec.h"
+#include "av3adech"
 #include "decode.h"
 #include "avcodec.h"
 #include "internal.h"
 #include "codec_internal.h"
-
+#include "libavutil/mastering_display_metadata.h"
 #if ARCH_AARCH64
 #include <arm_neon.h>
 #elif ARCH_X86
@@ -14,6 +15,7 @@
 #endif
 
 #define MAX_VIVID_SIZE 4096*64 //解码输出buffer 256k
+#define MAX_SINT16 32768 //16进制最大值
 
 typedef struct AVS3DecoderOutput
 {
@@ -28,6 +30,11 @@ typedef struct AVS3DecoderOutput
     unsigned long nMeta;
 }AVS3DecoderOutput;
 
+
+typedef struct Av3aSideData
+{
+    bool BinauralRender;
+}Av3aSideData;
 
 typedef struct arcdav3a_context
 {
@@ -50,13 +57,64 @@ typedef struct arcdav3a_context
     int m_lastBitrateTotal;
 
     void*   handle;
+    void*   renderhandle;
     PFavs3_create_decoder avs3_create_decoder;
     PFavs3_destroy_decoder avs3_destroy_decoder;
     PFparse_header parse_header;
     PFavs3_decode avs3_decode;
 
-
+    bool        m_bGotMD;
+    void*		m_pRender;
+    float* m_pRenderBuffer;
+    unsigned long m_dwRenderBufferSize;
+    unsigned long m_dwRenderDataLen;
+    PFCreateRenderer  CreateRenderer;
+    PFPutInterleavedAudioBuffer  PutInterleavedAudioBuffer;
+    PFGetBinauralInterleavedAudioBuffer GetBinauralInterleavedAudioBuffer;
+    PFUpdateMetadata  UpdateMetadata;
+    PFSetListenerPosition  SetListenerPosition;
+    PFDestroyRenderer    DestroyRenderer;
+    bool BinaRender;
 } arcdav3a_context;
+
+
+static int  InitRender(AVCodecContext *avctx, AVS3DecoderOutput* pOut)
+{
+    arcdav3a_context *h = avctx->priv_data;
+    h->renderhandle = dlopen("libav3a_binaural_render.so", RTLD_LAZY);
+    if(h->renderhandle == NULL)
+    {
+        av_log(avctx, AV_LOG_ERROR, "load libav3a_binaural_render.so failed: %s\n", dlerror());
+        return AVERROR(EFAULT);
+    }
+    h->CreateRenderer  = (PFCreateRenderer)dlsym(h->renderhandle, "CreateRenderer");
+    h->PutInterleavedAudioBuffer = (PFPutInterleavedAudioBuffer)dlsym(h->renderhandle, "PutInterleavedAudioBuffer");
+    h->GetBinauralInterleavedAudioBuffer = (PFGetBinauralInterleavedAudioBuffer)dlsym(h->renderhandle, "GetBinauralInterleavedAudioBuffer");
+    h->UpdateMetadata = (PFUpdateMetadata)dlsym(h->renderhandle, "UpdateMetadata");
+    h->SetListenerPosition = (PFSetListenerPosition)dlsym(h->renderhandle, "SetListenerPosition");
+    h->DestroyRenderer = (PFDestroyRenderer)dlsym(h->renderhandle, "DestroyRenderer");
+
+
+    if (h->CreateRenderer == NULL || h->PutInterleavedAudioBuffer == NULL ||
+        h->GetBinauralInterleavedAudioBuffer == NULL || h->UpdateMetadata == NULL ||
+        h->SetListenerPosition == NULL || h->DestroyRenderer == NULL)
+    {
+        av_log(avctx, AV_LOG_ERROR, "get avs3 audio decoder api failed\n");
+        return AVERROR(EFAULT);
+    }
+
+    if (!h->m_pRender)
+    {
+        Avs3MetaData metaData = { 0 };
+        //		if (pOut->pMeta && (pOut->nMeta > 0))
+        {
+            memcpy(&metaData, &h->m_LastMetaData, sizeof(metaData));
+        }
+        h->m_pRender = h->CreateRenderer(&metaData, pOut->nSamplerate, 1024);
+        av_log(avctx, AV_LOG_DEBUG, "CreateRenderer h->m_pRender:%p \n", h->m_pRender);
+    }
+    return 0;
+}
 
 static av_cold int arcdav3a_decode_init(AVCodecContext *avctx)
 {
@@ -66,12 +124,12 @@ static av_cold int arcdav3a_decode_init(AVCodecContext *avctx)
     //avctx->ch_layout  = (AVChannelLayout)AV_CHANNEL_LAYOUT_STEREO;
     if(!h->handle)
     {
-        h->handle = dlopen("libav3ad.so", RTLD_LAZY);
+        h->handle = dlopen("libAVS3AudioDec.so", RTLD_LAZY);
     }
 
     if(h->handle == NULL)
     {
-        av_log(avctx, AV_LOG_ERROR, "load libav3ad.so failed: %s\n", dlerror());
+        av_log(avctx, AV_LOG_ERROR, "load libAVS3AudioDec.so failed: %s\n", dlerror());
         return AVERROR(EFAULT);
     }
 
@@ -102,6 +160,11 @@ static av_cold int arcdav3a_decode_init(AVCodecContext *avctx)
     memset(&h->out_frame, 0, sizeof(AVS3DecoderOutput));
     h->out_frame.pOutData = av_malloc(MAX_VIVID_SIZE*sizeof(unsigned char));
     memset(h->out_frame.pOutData, 0, MAX_VIVID_SIZE*sizeof(unsigned char));
+    h->m_pRender = NULL;
+    h->m_pRenderBuffer = NULL;
+    h->m_bGotMD = false;
+    h->renderhandle = NULL;
+    h->BinaRender = false;
     av_log(avctx, AV_LOG_DEBUG, "end arcdav3a_decode_init!\n");
     return 0;
 }
@@ -220,7 +283,7 @@ static int dav3a_decode_frame(AVCodecContext *avctx, const char * pIn, unsigned 
         {
             pos = h->m_dwDataLen;
             ret = AVS3_DATA_NOT_ENOUGH;
-            av_log(avctx, AV_LOG_DEBUG, "pos:%d + consumed:%d >= m_dwDataLen:%ld\n", pos, consumed, h->m_dwDataLen);
+            av_log(avctx, AV_LOG_DEBUG, "pos + consumed >= m_dwDataLen\n", pos, consumed, h->m_dwDataLen);
             break;
         }
         //reset end!
@@ -296,6 +359,134 @@ static int dav3a_decode_frame(AVCodecContext *avctx, const char * pIn, unsigned 
     return ret;
 }
 
+
+static int RenderPCM(AVCodecContext *avctx, AVS3DecoderOutput* pOut)
+{
+    av_log(avctx, AV_LOG_DEBUG, "begin  RenderPCM!\n");
+    arcdav3a_context *h = avctx->priv_data;
+    int nRet;
+    if(!h->renderhandle){
+        av_log(avctx, AV_LOG_DEBUG, "InitRender!\n");
+        nRet = InitRender(avctx, &h->out_frame);
+        if(nRet < 0)
+            return nRet;
+    }
+
+    if (!h->renderhandle)
+        return -1;
+
+    if (!pOut || !pOut->pOutData || pOut->nlen <= 0)
+        return -1;
+
+    if (h->m_nlastChannels != pOut->nChannel)
+    {
+        if(h->m_pRenderBuffer)
+            av_freep(h->m_pRenderBuffer);
+        h->m_dwRenderBufferSize = h->m_dwRenderDataLen = 0;
+        h->m_nlastChannels = pOut->nChannel;
+    }
+
+    int samples = pOut->nlen / (pOut->nChannel * pOut->nBits / 8);//总sample个数：输出数据长度/(声道数*2) = 一个声道的sample数=1024
+
+    /*内存分配*/
+    if (!h->m_pRenderBuffer)
+    {
+        h->m_dwRenderBufferSize = samples * 2;//render buffer 长度 输出2声道
+        h->m_pRenderBuffer = (float*)av_malloc(h->m_dwRenderBufferSize * pOut->nChannel * sizeof(float));
+        h->m_dwRenderDataLen = 0;
+    }
+    if (h->m_dwRenderDataLen + samples > h->m_dwRenderBufferSize)
+    {
+        h->m_dwRenderBufferSize = h->m_dwRenderDataLen + samples * 2;
+        float* tmp = (float*)av_realloc(h->m_pRenderBuffer, h->m_dwRenderBufferSize * pOut->nChannel * sizeof(float));
+        if (tmp)
+            h->m_pRenderBuffer = tmp;
+        else
+            av_freep(h->m_pRenderBuffer);
+    }
+    if (!h->m_pRenderBuffer)
+        return -1;
+    /*内存分配 结束*/
+
+    short *src = (short*)pOut->pOutData;//decode的输出 render的输入 此处最好copy下 然后pOut->pOutData置空？
+    for (int i = 0; i < samples*pOut->nChannel; i++)
+    {
+        *(h->m_pRenderBuffer + h->m_dwRenderDataLen * pOut->nChannel + i) = ((float)src[i]) / MAX_SINT16;
+    }
+    h->m_dwRenderDataLen += samples;//要render的sample个数
+    Avs3MetaData metaData = { 0 };
+//	if (pOut->pMeta && (pOut->nMeta > 0))
+    {
+//		memcpy(&metaData, pOut->pMeta, min(pOut->nMeta, sizeof(metaData)));
+        memcpy(&metaData, &h->m_LastMetaData, sizeof(h->m_LastMetaData));
+    }
+    float position[3] = { 0, 0, 0 };
+    float front[3] = { 0, 0, 1 };
+    float up[3] = { 0, 1, 0 };
+
+    float outbuf[1024 * 16];//16声道 每个声道1024个sample
+
+    pOut->nChannel = 2;//输出2声道
+    pOut->nlen = 0;//输出长度置空
+    int err = 0;
+    int pos = 0;
+    while (h->m_dwRenderDataLen - pos >= 1024)//一次render 1024 个sample
+    {
+        av_log(avctx, AV_LOG_DEBUG, "begin  PutInterleavedAudioBuffer!\n");
+        if (h->PutInterleavedAudioBuffer(h->m_pRender, h->m_pRenderBuffer, 1024, h->m_nlastChannels) != 0) //m_pRender: handle  m_pRenderBuffer:存放要render的sample
+        {
+            err = 1;
+            break;
+        }
+//		if (pOut->pMeta && (pOut->nMeta > 0))
+        {
+            av_log(avctx, AV_LOG_DEBUG, "begin  UpdateMetadata!\n");
+            if (h->UpdateMetadata(h->m_pRender, &metaData) != 0) //如果该帧有metadata  更新media data
+            {
+                err = 1;
+                break;
+            }
+        }
+        if (h->SetListenerPosition(h->m_pRender, position, front, up) != 0) {
+            err = 1;
+            break;
+        }
+        av_log(avctx, AV_LOG_DEBUG, "begin  GetBinauralInterleavedAudioBuffer!  %p\n", h->m_pRender);
+        if (h->GetBinauralInterleavedAudioBuffer(h->m_pRender, outbuf, 1024) != 0) //获取输出数据 outbuf： 输出数据
+        {
+            err = 1;
+            break;
+        }
+        av_log(avctx, AV_LOG_DEBUG, "end  GetBinauralInterleavedAudioBuffer!\n");
+        short* dst = (short*)(pOut->pOutData + pOut->nlen);//指向输出位置 相当于覆盖了原来的输出数据的内容
+        for (int i = 0; i < 1024*pOut->nChannel; i++)//此处 pOut->nChannel是2
+        {
+            float tmp = outbuf[i] * 32767.0f;
+            if (tmp > 32767.0f) {
+                tmp = 32767.0f;
+            } else if (tmp < -32768.0f) {
+                tmp = -32768.0f;
+            }
+            dst[i] = (short)tmp;//float转int
+        }
+        pOut->nlen += 1024 * pOut->nChannel * 2;
+        pos += 1024;
+    }
+
+    if (err)
+    {
+        pOut->nlen = 0;
+        h->m_dwRenderDataLen = 0;
+    }
+    if (h->m_dwRenderDataLen > pos)
+        h->m_dwRenderDataLen -= pos;
+    else
+        h->m_dwRenderDataLen = 0;
+    av_log(avctx, AV_LOG_DEBUG, "end  RenderPCM!\n");
+    return 0;
+}
+
+
 static int arcdav3a_decode_frame(AVCodecContext *avctx, AVFrame *frm, int *got_frame_ptr, AVPacket *avpkt)
 {
     av_log(avctx, AV_LOG_DEBUG, "begin arcdav3a_receive_frame!\n");
@@ -308,8 +499,29 @@ static int arcdav3a_decode_frame(AVCodecContext *avctx, AVFrame *frm, int *got_f
                                         &side_data_size);
     if(side_data && side_data_size>0){
 
-        av_log(avctx, AV_LOG_DEBUG, "side_data side_data_size>0\n");
+        h->BinaRender = false;//((Av3aSideData*)side_data)->BinauralRender == true?true:false;
+        av_log(avctx, AV_LOG_DEBUG, "h->BinaRender=%d\n", h->BinaRender);
     }
+
+    //static int num =0;
+    //num ++;
+    //FILE* fpin = NULL;
+    // FILE* fpout = NULL;
+    // if (num == 1)
+    // {
+    //     //fpin = fopen("test.av3a", "w");
+    // 	fpout = fopen("/sdcard/test.pcm", "w");
+    // }
+    // else
+    // {
+    //     //fpin = fopen("test.av3a", "a+");
+    // 	fpout = fopen("/sdcard/test.pcm", "a+");
+    // }
+    /*if(avpkt.size > 0 && avpkt.data)
+    {
+        fwrite(avpkt.data, 1, avpkt.size, fpin);
+    }
+    fclose(fpin);*/
 
     //unsigned char pbIn[2048] = {0};
     if (avpkt->size>0)
@@ -334,7 +546,20 @@ static int arcdav3a_decode_frame(AVCodecContext *avctx, AVFrame *frm, int *got_f
             if (h->out_frame.pMeta && memcmp(h->out_frame.pMeta, &h->m_LastMetaData, sizeof(h->m_LastMetaData)) != 0)//metadata发生变化
             {
                 memcpy(&h->m_LastMetaData, h->out_frame.pMeta, sizeof(h->m_LastMetaData));//更新meta data
+                h->m_bGotMD = true;
             }
+            if(h->BinaRender && h->m_bGotMD){
+                ret = RenderPCM(avctx, &h->out_frame);
+                if (ret < 0)
+                    return AVERROR(EAGAIN);
+            }
+
+
+            /*if(h->out_frame.nlen > 0)
+			{
+				fwrite(h->out_frame.pOutData, 1, h->out_frame.nlen, fpout);
+			}
+			fclose(fpout);*/
 
             frm->nb_samples = 1024;
             frm->sample_rate = h->out_frame.nSamplerate;
@@ -372,7 +597,11 @@ static int arcdav3a_decode_frame(AVCodecContext *avctx, AVFrame *frm, int *got_f
                 av_log(avctx, AV_LOG_DEBUG, "begin copy buffer!\n");
                 memcpy(frm->data[0], h->out_frame.pOutData, h->out_frame.nlen);
                 av_log(avctx, AV_LOG_DEBUG, "end copy buffer!\n");
-
+                /*if(fpout)
+                {
+                fwrite(frm->data[0], 1, h->out_frame.nlen, fpout);
+                fclose(fpout);
+                }*/
                 *got_frame_ptr = 1;
             }
         }
@@ -396,7 +625,14 @@ static av_cold int arcdav3a_decode_close(AVCodecContext *avctx)
     if (h->m_hAvs3)
         h->avs3_destroy_decoder(h->m_hAvs3);
     av_log(avctx, AV_LOG_DEBUG, "avs3_destroy_decoder end!\n");
-
+    if (h->m_pRender)
+        h->DestroyRenderer(h->m_pRender);
+    av_log(avctx, AV_LOG_DEBUG, "DestroyRenderer end!\n");
+    h->m_pRender = NULL;
+    if (h->renderhandle)
+        dlclose(h->renderhandle);
+    av_log(avctx, AV_LOG_DEBUG, "renderhandle close end!\n");
+    h->renderhandle = NULL;
     h->m_hAvs3 = NULL;
     if(h->handle)
         dlclose(h->handle);
@@ -408,7 +644,8 @@ static av_cold int arcdav3a_decode_close(AVCodecContext *avctx)
     if(h->out_frame.pOutData)
         av_freep(&h->out_frame.pOutData);
     av_log(avctx, AV_LOG_DEBUG, "free out_frame.pOutData end!\n");
-
+    if(h->m_pRenderBuffer)
+        av_freep(&h->m_pRenderBuffer);
     av_log(avctx, AV_LOG_DEBUG, "arcdav3a_decode_close end!\n");
     return 0;
 }
