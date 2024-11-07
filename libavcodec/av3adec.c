@@ -283,7 +283,7 @@ static int dav3a_decode_frame(AVCodecContext *avctx, const char * pIn, unsigned 
         {
             pos = h->m_dwDataLen;
             ret = AVS3_DATA_NOT_ENOUGH;
-            av_log(avctx, AV_LOG_DEBUG, "pos + consumed >= m_dwDataLen\n", pos, consumed, h->m_dwDataLen);
+//            av_log(avctx, AV_LOG_DEBUG, "pos + consumed >= m_dwDataLen\n", pos, consumed, h->m_dwDataLen);
             break;
         }
         //reset end!
