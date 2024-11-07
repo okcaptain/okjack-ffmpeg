@@ -2,7 +2,7 @@
 #include <unistd.h>
 #include <dlfcn.h>
 #include <stdbool.h>
-#include "av3adech"
+#include "av3adec.h"
 #include "decode.h"
 #include "avcodec.h"
 #include "internal.h"
