@@ -1,16 +1,11 @@
-#include "avs3_cnst_com.h"
-#include "avs3_stat_dec.h"
-#include "avs3_decoder_interface.h"
-
-#include "libavutil/log.h"
-#include "libavutil/opt.h"
-#include "avcodec.h"
-#include "decode.h"
-#include "internal.h"
-#include "codec_internal.h"
-#include "profiles.h"
+#include <dlfcn.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include "av3adec.h"
+#include "decode.h"
+#include "avcodec.h"
+#include "internal.h"
+#include "codec_internal.h"
 
 #if ARCH_AARCH64
 #include <arm_neon.h>
@@ -54,6 +49,12 @@ typedef struct av3a_context
     int m_lastMixtype;
     int m_lastBitrateTotal;
 
+    void*   handle;
+    PFavs3_create_decoder avs3_create_decoder;
+    PFavs3_destroy_decoder avs3_destroy_decoder;
+    PFparse_header parse_header;
+    PFavs3_decode avs3_decode;
+
 } av3a_context;
 
 static av_cold int av3a_decode_init(AVCodecContext *avctx)
@@ -62,8 +63,30 @@ static av_cold int av3a_decode_init(AVCodecContext *avctx)
     av3a_context *h = avctx->priv_data;
     avctx->sample_fmt = AV_SAMPLE_FMT_S16;//for find_stream_info port to reduce time consuming
     //avctx->ch_layout  = (AVChannelLayout)AV_CHANNEL_LAYOUT_STEREO;
+    if(!h->handle) {
+        h->handle = dlopen("libav3ad.so", RTLD_LAZY);
+    }
+
+    if(h->handle == NULL)
+    {
+        av_log(avctx, AV_LOG_ERROR, "load libav3ad.so failed: %s\n", dlerror());
+        return AVERROR(EFAULT);
+    }
+
+    h->avs3_create_decoder  = (PFavs3_create_decoder)dlsym(h->handle, "avs3_create_decoder");
+    h->avs3_destroy_decoder = (PFavs3_destroy_decoder)dlsym(h->handle, "avs3_destroy_decoder");
+    h->parse_header = (PFparse_header)dlsym(h->handle, "parse_header");
+    h->avs3_decode = (PFavs3_decode)dlsym(h->handle, "avs3_decode");
+
+    if (h->avs3_create_decoder == NULL || h->avs3_destroy_decoder == NULL ||
+        h->parse_header == NULL || h->avs3_decode == NULL)
+    {
+        av_log(avctx, AV_LOG_ERROR, "get avs3 audio decoder api failed\n");
+        return AVERROR(EFAULT);
+    }
+
     if (!h->m_hAvs3)
-        h->m_hAvs3 = avs3_create_decoder();
+        h->m_hAvs3 = h->avs3_create_decoder();
 
     h->m_lastChCfg = -1;
     h->m_lastObjcnt = -1;
@@ -88,10 +111,10 @@ static av_cold void av3a_decode_flush(AVCodecContext *avctx)
     av_log(avctx, AV_LOG_DEBUG, "begin  av3a_decode_flush!\n");
     av3a_context *h = avctx->priv_data;
     if (h->m_hAvs3)
-        avs3_destroy_decoder(h->m_hAvs3);
+        h->avs3_destroy_decoder(h->m_hAvs3);
     av_log(avctx, AV_LOG_DEBUG, "av3a_decode_flush! avs3_destroy_decoder end!\n");
     h->m_hAvs3 = 0;
-    h->m_hAvs3 = avs3_create_decoder();
+    h->m_hAvs3 = h->avs3_create_decoder();
     av_log(avctx, AV_LOG_DEBUG, "av3a_decode_flush! avs3_create_decoder end!\n");
     h->m_bFirstFrame = true;
     h->m_dwDataLen = 0;
@@ -112,7 +135,7 @@ static av_cold int av3a_decode_close(AVCodecContext *avctx)
         return 0;
     }
     if (h->m_hAvs3)
-        avs3_destroy_decoder(h->m_hAvs3);
+        h->avs3_destroy_decoder(h->m_hAvs3);
     av_log(avctx, AV_LOG_DEBUG, "avs3_destroy_decoder end!\n");
 
     h->m_hAvs3 = NULL;
@@ -164,7 +187,7 @@ static int dav3a_decode_frame(AVCodecContext *avctx, const char * pIn, unsigned 
     av_log(avctx, AV_LOG_DEBUG, "begin  audio vivid parse_header!\n");
     do {
         int consumed = 0;
-        while ((ret = parse_header(h->m_hAvs3, h->m_pBuffer + pos, h->m_dwDataLen - pos, h->m_bFirstFrame, &consumed, NULL)) != AVS3_TRUE)
+        while ((ret = h->parse_header(h->m_hAvs3, h->m_pBuffer + pos, h->m_dwDataLen - pos, h->m_bFirstFrame, &consumed, NULL)) != AVS3_TRUE)
         {
             if (ret == AVS3_DATA_NOT_ENOUGH)
             {
@@ -235,7 +258,7 @@ static int dav3a_decode_frame(AVCodecContext *avctx, const char * pIn, unsigned 
 
         int outlen = 0;
         av_log(avctx, AV_LOG_DEBUG, "begin  avs3_decode! pos:%d m_dwDataLen:%ld h->m_pBuffer:%p pOut->pOutData:%p\n", pos, h->m_dwDataLen, h->m_pBuffer, pOut->pOutData);
-        ret = avs3_decode(h->m_hAvs3, h->m_pBuffer + pos, h->m_dwDataLen - pos, pOut->pOutData + outindex, &outlen, &consumed);
+        ret = h->avs3_decode(h->m_hAvs3, h->m_pBuffer + pos, h->m_dwDataLen - pos, pOut->pOutData + outindex, &outlen, &consumed);
         pos += consumed;
 
         if ((ret != AVS3_TRUE) || (outlen <= 0))
