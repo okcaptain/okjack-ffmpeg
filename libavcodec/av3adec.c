@@ -29,7 +29,7 @@ typedef struct AVS3DecoderOutput
 }AVS3DecoderOutput;
 
 
-typedef struct av3a_context
+typedef struct arcdav3a_context
 {
     AVCodecContext*     avctx;
     int                 eos;
@@ -55,15 +55,17 @@ typedef struct av3a_context
     PFparse_header parse_header;
     PFavs3_decode avs3_decode;
 
-} av3a_context;
 
-static av_cold int av3a_decode_init(AVCodecContext *avctx)
+} arcdav3a_context;
+
+static av_cold int arcdav3a_decode_init(AVCodecContext *avctx)
 {
-    av_log(avctx, AV_LOG_DEBUG, "begin av3a_decode_init!\n");
-    av3a_context *h = avctx->priv_data;
+    av_log(avctx, AV_LOG_DEBUG, "begin arcdav3a_decode_init!\n");
+    arcdav3a_context *h = avctx->priv_data;
     avctx->sample_fmt = AV_SAMPLE_FMT_S16;//for find_stream_info port to reduce time consuming
     //avctx->ch_layout  = (AVChannelLayout)AV_CHANNEL_LAYOUT_STEREO;
-    if(!h->handle) {
+    if(!h->handle)
+    {
         h->handle = dlopen("libav3ad.so", RTLD_LAZY);
     }
 
@@ -84,7 +86,6 @@ static av_cold int av3a_decode_init(AVCodecContext *avctx)
         av_log(avctx, AV_LOG_ERROR, "get avs3 audio decoder api failed\n");
         return AVERROR(EFAULT);
     }
-
     if (!h->m_hAvs3)
         h->m_hAvs3 = h->avs3_create_decoder();
 
@@ -101,60 +102,33 @@ static av_cold int av3a_decode_init(AVCodecContext *avctx)
     memset(&h->out_frame, 0, sizeof(AVS3DecoderOutput));
     h->out_frame.pOutData = av_malloc(MAX_VIVID_SIZE*sizeof(unsigned char));
     memset(h->out_frame.pOutData, 0, MAX_VIVID_SIZE*sizeof(unsigned char));
-
-    av_log(avctx, AV_LOG_DEBUG, "end av3a_decode_init!\n");
+    av_log(avctx, AV_LOG_DEBUG, "end arcdav3a_decode_init!\n");
     return 0;
 }
 
-static av_cold void av3a_decode_flush(AVCodecContext *avctx)
+static av_cold void arcdav3a_decode_flush(AVCodecContext *avctx)
 {
-    av_log(avctx, AV_LOG_DEBUG, "begin  av3a_decode_flush!\n");
-    av3a_context *h = avctx->priv_data;
+    av_log(avctx, AV_LOG_DEBUG, "begin  arcdav3a_decode_flush!\n");
+    arcdav3a_context *h = avctx->priv_data;
     if (h->m_hAvs3)
         h->avs3_destroy_decoder(h->m_hAvs3);
-    av_log(avctx, AV_LOG_DEBUG, "av3a_decode_flush! avs3_destroy_decoder end!\n");
+    av_log(avctx, AV_LOG_DEBUG, "arcdav3a_decode_flush! avs3_destroy_decoder end!\n");
     h->m_hAvs3 = 0;
     h->m_hAvs3 = h->avs3_create_decoder();
-    av_log(avctx, AV_LOG_DEBUG, "av3a_decode_flush! avs3_create_decoder end!\n");
+    av_log(avctx, AV_LOG_DEBUG, "arcdav3a_decode_flush! avs3_create_decoder end!\n");
     h->m_bFirstFrame = true;
     h->m_dwDataLen = 0;
     h->m_lastChCfg = -1;
     h->m_lastObjcnt = -1;
     h->m_lastMixtype = -1;
     h->m_lastBitrateTotal = -1;
-    av_log(avctx, AV_LOG_DEBUG, "end  av3a_decode_flush!\n");
-}
-
-static av_cold int av3a_decode_close(AVCodecContext *avctx)
-{
-    av_log(avctx, AV_LOG_DEBUG, "av3a_decode_close begin!\n");
-    av3a_context *h = avctx->priv_data;
-    if(h == NULL)
-    {
-        av_log(avctx, AV_LOG_DEBUG, "av3a_context is NULL!\n");
-        return 0;
-    }
-    if (h->m_hAvs3)
-        h->avs3_destroy_decoder(h->m_hAvs3);
-    av_log(avctx, AV_LOG_DEBUG, "avs3_destroy_decoder end!\n");
-
-    h->m_hAvs3 = NULL;
-
-    if(h->m_pBuffer)
-        av_freep(&h->m_pBuffer);
-    av_log(avctx, AV_LOG_DEBUG, "free h->m_pBuffer end!\n");
-    if(h->out_frame.pOutData)
-        av_freep(&h->out_frame.pOutData);
-    av_log(avctx, AV_LOG_DEBUG, "free out_frame.pOutData end!\n");
-
-    av_log(avctx, AV_LOG_DEBUG, "av3a_decode_close end!\n");
-    return 0;
+    av_log(avctx, AV_LOG_DEBUG, "end  arcdav3a_decode_flush!\n");
 }
 
 static int dav3a_decode_frame(AVCodecContext *avctx, const char * pIn, unsigned long lenIn, unsigned long* lenConsumed, AVS3DecoderOutput* pOut)
 {
     av_log(avctx, AV_LOG_DEBUG, "begin  dav3a_decode_frame!\n");
-    av3a_context *h = avctx->priv_data;
+    arcdav3a_context *h = avctx->priv_data;
     int ret = 0;
     if (!h->m_pBuffer)
     {
@@ -220,7 +194,7 @@ static int dav3a_decode_frame(AVCodecContext *avctx, const char * pIn, unsigned 
         if (h->m_hAvs3->numObjsOutput > 6)
         {
             av_log(avctx, AV_LOG_DEBUG, "!!!jl:Error, numObjsOutput:%d, reset\n", h->m_hAvs3->numObjsOutput);
-            av3a_decode_flush(avctx);
+            arcdav3a_decode_flush(avctx);
             outindex = 0;
             break;
         }
@@ -235,7 +209,7 @@ static int dav3a_decode_frame(AVCodecContext *avctx, const char * pIn, unsigned 
                                         "m_lastMixtype:%d, now:%d, m_lastBitrateTotal:%d, now:%ld\n\n"
                     , h->m_lastChCfg, h->m_hAvs3->channelNumConfig, h->m_lastObjcnt, h->m_hAvs3->numObjsOutput,
                    h->m_lastMixtype, h->m_hAvs3->isMixedContent, h->m_lastBitrateTotal, h->m_hAvs3->totalBitrate);
-            av3a_decode_flush(avctx);
+            arcdav3a_decode_flush(avctx);
             outindex = 0;
             break;
         }
@@ -268,7 +242,7 @@ static int dav3a_decode_frame(AVCodecContext *avctx, const char * pIn, unsigned 
             {
                 av_log(avctx, AV_LOG_DEBUG, "avs3_decode did not output data too many times, reset decoder.");
                 h->m_dwErrorCounter = 0;
-                av3a_decode_flush(avctx);
+                arcdav3a_decode_flush(avctx);
                 outindex = 0;
             }
         }
@@ -322,20 +296,19 @@ static int dav3a_decode_frame(AVCodecContext *avctx, const char * pIn, unsigned 
     return ret;
 }
 
-static int av3a_decode_frame(AVCodecContext *avctx, AVFrame *frm, int *got_frame_ptr, AVPacket *avpkt)
+static int arcdav3a_decode_frame(AVCodecContext *avctx, AVFrame *frm, int *got_frame_ptr, AVPacket *avpkt)
 {
-    av_log(avctx, AV_LOG_DEBUG, "begin av3a_receive_frame!\n");
-    av3a_context *h = avctx->priv_data;
+    av_log(avctx, AV_LOG_DEBUG, "begin arcdav3a_receive_frame!\n");
+    arcdav3a_context *h = avctx->priv_data;
     int ret;
     *got_frame_ptr = 0;
-
     size_t side_data_size;
     uint8_t *side_data;
     side_data = av_packet_get_side_data(avpkt, AV_PKT_DATA_AUDIO_VIVID,
                                         &side_data_size);
-
     if(side_data && side_data_size>0){
-        av_log(avctx, AV_LOG_DEBUG, "side_data, side_data_size>0");
+
+        av_log(avctx, AV_LOG_DEBUG, "side_data side_data_size>0\n");
     }
 
     //unsigned char pbIn[2048] = {0};
@@ -387,8 +360,6 @@ static int av3a_decode_frame(AVCodecContext *avctx, AVFrame *frm, int *got_frame
             avctx->sample_rate = frm->sample_rate;
 
             frm->format = AV_SAMPLE_FMT_S16;
-
-
             av_log(avctx, AV_LOG_DEBUG, " before ff_get_buffer! h->out_frame.nlen %ld\n", h->out_frame.nlen);
             ret = ff_get_buffer(avctx, frm, 0);//will copy frm->ch_layout from avctx->ch_layout
             if (ret < 0){
@@ -413,6 +384,40 @@ static int av3a_decode_frame(AVCodecContext *avctx, AVFrame *frm, int *got_frame
     return avpkt->size;
 }
 
+static av_cold int arcdav3a_decode_close(AVCodecContext *avctx)
+{
+    av_log(avctx, AV_LOG_DEBUG, "arcdav3a_decode_close begin!\n");
+    arcdav3a_context *h = avctx->priv_data;
+    if(h == NULL)
+    {
+        av_log(avctx, AV_LOG_DEBUG, "arcdav3a_context is NULL!\n");
+        return 0;
+    }
+    if (h->m_hAvs3)
+        h->avs3_destroy_decoder(h->m_hAvs3);
+    av_log(avctx, AV_LOG_DEBUG, "avs3_destroy_decoder end!\n");
+    if (h->m_pRender)
+        h->DestroyRenderer(h->m_pRender);
+    av_log(avctx, AV_LOG_DEBUG, "DestroyRenderer end!\n");
+
+    if (h->renderhandle)
+        dlclose(h->renderhandle);
+    av_log(avctx, AV_LOG_DEBUG, "renderhandle close end!\n");
+    h->m_hAvs3 = NULL;
+    if(h->handle)
+        dlclose(h->handle);
+    av_log(avctx, AV_LOG_DEBUG, "handle close end!\n");
+    h->handle = NULL;
+    if(h->m_pBuffer)
+        av_freep(&h->m_pBuffer);
+    av_log(avctx, AV_LOG_DEBUG, "free h->m_pBuffer end!\n");
+    if(h->out_frame.pOutData)
+        av_freep(&h->out_frame.pOutData);
+    av_log(avctx, AV_LOG_DEBUG, "free out_frame.pOutData end!\n");
+
+    av_log(avctx, AV_LOG_DEBUG, "arcdav3a_decode_close end!\n");
+    return 0;
+}
 
 const FFCodec ff_av3a_decoder = {
         .p.name           = "av3a",
@@ -421,9 +426,9 @@ const FFCodec ff_av3a_decoder = {
         .p.id             = AV_CODEC_ID_AV3A,
         .p.capabilities   = AV_CODEC_CAP_CHANNEL_CONF | AV_CODEC_CAP_DR1,
         .caps_internal    = FF_CODEC_CAP_INIT_CLEANUP,
-        .priv_data_size   = sizeof(av3a_context),
-        FF_CODEC_DECODE_CB(av3a_decode_frame),
-        .init             = av3a_decode_init,
-        .flush            = av3a_decode_flush,
-        .close            = av3a_decode_close,
+        .priv_data_size   = sizeof(arcdav3a_context),
+        FF_CODEC_DECODE_CB(arcdav3a_decode_frame),
+        .init             = arcdav3a_decode_init,
+        .flush            = arcdav3a_decode_flush,
+        .close            = arcdav3a_decode_close,
 };
