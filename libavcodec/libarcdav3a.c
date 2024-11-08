@@ -124,12 +124,12 @@ static av_cold int arcdav3a_decode_init(AVCodecContext *avctx)
 	//avctx->ch_layout  = (AVChannelLayout)AV_CHANNEL_LAYOUT_STEREO;
 	if(!h->handle)
 	{
-		h->handle = dlopen("libAVS3AudioDec.so", RTLD_LAZY);
+		h->handle = dlopen("libav3ad.so", RTLD_LAZY);
 	}
 	
     if(h->handle == NULL)
     {
-        av_log(avctx, AV_LOG_ERROR, "load libAVS3AudioDec.so failed: %s\n", dlerror());
+        av_log(avctx, AV_LOG_ERROR, "load libav3ad.so failed: %s\n", dlerror());
         return AVERROR(EFAULT);
     }
 
