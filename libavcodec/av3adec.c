@@ -97,32 +97,6 @@ static av_cold void av3a_decode_flush(AVCodecContext *avctx)
     av_log(avctx, AV_LOG_DEBUG, "end  av3a_decode_flush!\n");
 }
 
-static av_cold int av3a_decode_close(AVCodecContext *avctx)
-{
-    av_log(avctx, AV_LOG_DEBUG, "av3a_decode_close begin!\n");
-    av3a_context *h = avctx->priv_data;
-    if(h == NULL)
-    {
-        av_log(avctx, AV_LOG_DEBUG, "av3a_context is NULL!\n");
-        return 0;
-    }
-    if (h->m_hAvs3)
-        avs3_destroy_decoder(h->m_hAvs3);
-    av_log(avctx, AV_LOG_DEBUG, "avs3_destroy_decoder end!\n");
-
-    h->m_hAvs3 = NULL;
-
-    if(h->m_pBuffer)
-        av_freep(&h->m_pBuffer);
-    av_log(avctx, AV_LOG_DEBUG, "free h->m_pBuffer end!\n");
-    if(h->out_frame.pOutData)
-        av_freep(&h->out_frame.pOutData);
-    av_log(avctx, AV_LOG_DEBUG, "free out_frame.pOutData end!\n");
-
-    av_log(avctx, AV_LOG_DEBUG, "av3a_decode_close end!\n");
-    return 0;
-}
-
 static int dav3a_decode_frame(AVCodecContext *avctx, const char * pIn, unsigned long lenIn, unsigned long* lenConsumed, AVS3DecoderOutput* pOut)
 {
     av_log(avctx, AV_LOG_DEBUG, "begin  dav3a_decode_frame!\n");
@@ -383,6 +357,32 @@ static int av3a_decode_frame(AVCodecContext *avctx, AVFrame *frm, int *got_frame
     }
     //return AVERROR(EAGAIN);
     return avpkt->size;
+}
+
+static av_cold int av3a_decode_close(AVCodecContext *avctx)
+{
+    av_log(avctx, AV_LOG_DEBUG, "av3a_decode_close begin!\n");
+    av3a_context *h = avctx->priv_data;
+    if(h == NULL)
+    {
+        av_log(avctx, AV_LOG_DEBUG, "av3a_context is NULL!\n");
+        return 0;
+    }
+    if (h->m_hAvs3)
+        avs3_destroy_decoder(h->m_hAvs3);
+    av_log(avctx, AV_LOG_DEBUG, "avs3_destroy_decoder end!\n");
+
+    h->m_hAvs3 = NULL;
+
+    if(h->m_pBuffer)
+        av_freep(&h->m_pBuffer);
+    av_log(avctx, AV_LOG_DEBUG, "free h->m_pBuffer end!\n");
+    if(h->out_frame.pOutData)
+        av_freep(&h->out_frame.pOutData);
+    av_log(avctx, AV_LOG_DEBUG, "free out_frame.pOutData end!\n");
+
+    av_log(avctx, AV_LOG_DEBUG, "av3a_decode_close end!\n");
+    return 0;
 }
 
 
