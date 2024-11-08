@@ -373,7 +373,6 @@ static int av3a_decode_frame(AVCodecContext *avctx, void *data,
         } else if(frame->channels == 2) {
             frame->channel_layout = AV_CH_LAYOUT_STEREO;// need set frame->ch_payout to frame ch_out verification
         } else {
-            frame->channels = 2;
             frame->channel_layout = AV_CH_LAYOUT_STEREO;// need set frame->ch_payout to frame ch_out verification
         }
         avctx->channel_layout  = frame->channel_layout;//need reset avctx->ch_layout for ff_get_buffer to get correct size
