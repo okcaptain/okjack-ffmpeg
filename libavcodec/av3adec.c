@@ -354,27 +354,20 @@ static int av3a_decode_frame(AVCodecContext *avctx, void *data,
         //add by
         frame->channel_layout = av_get_default_channel_layout(avctx->channels);
         ChannelNumConfig chconf = s->handle->channelNumConfig;
-//        if(frame->channels == 1)
-//            frame->channel_layout = AV_CH_LAYOUT_MONO;// need set frame->ch_payout to frame ch_out verification
-//        else if(frame->channels == 2)
-//            frame->channel_layout = AV_CH_LAYOUT_STEREO;// need set frame->ch_payout to frame ch_out verification
-//        else if(chconf == CHANNEL_CONFIG_MC_5_1_4 && frame->channels == 10)
-//            frame->channel_layout = AV_CH_LAYOUT_5POINT1POINT4_BACK;
-//        else if(chconf == CHANNEL_CONFIG_MC_7_1_2 && frame->channels == 10)
-//            frame->channel_layout = AV_CH_LAYOUT_7POINT1POINT2;
-//        else if(chconf == CHANNEL_CONFIG_MC_7_1_4 && frame->channels == 12)
-//            frame->channel_layout = AV_CH_LAYOUT_7POINT1POINT4_BACK;
-//        else if(chconf == CHANNEL_CONFIG_HOA_ORDER3 && frame->channels == 16)
-//            frame->channel_layout = AV_CH_LAYOUT_HEXADECAGONAL;
-//        else if(chconf == CHANNEL_CONFIG_UNKNOWN)//error
-//            av_log(avctx, AV_LOG_ERROR, "unknown audio chconf! Please check the source...\n");
-        if(frame->channels == 1) {
+        if(frame->channels == 1)
             frame->channel_layout = AV_CH_LAYOUT_MONO;// need set frame->ch_payout to frame ch_out verification
-        } else if(frame->channels == 2) {
+        else if(frame->channels == 2)
             frame->channel_layout = AV_CH_LAYOUT_STEREO;// need set frame->ch_payout to frame ch_out verification
-        } else {
-            frame->channel_layout = AV_CH_LAYOUT_STEREO;// need set frame->ch_payout to frame ch_out verification
-        }
+        else if(chconf == CHANNEL_CONFIG_MC_5_1_4 && frame->channels == 10)
+            frame->channel_layout = AV_CH_LAYOUT_5POINT1POINT4_BACK;
+        else if(chconf == CHANNEL_CONFIG_MC_7_1_2 && frame->channels == 10)
+            frame->channel_layout = AV_CH_LAYOUT_7POINT1POINT2;
+        else if(chconf == CHANNEL_CONFIG_MC_7_1_4 && frame->channels == 12)
+            frame->channel_layout = AV_CH_LAYOUT_7POINT1POINT4_BACK;
+        else if(chconf == CHANNEL_CONFIG_HOA_ORDER3 && frame->channels == 16)
+            frame->channel_layout = AV_CH_LAYOUT_HEXADECAGONAL;
+        else if(chconf == CHANNEL_CONFIG_UNKNOWN)//error
+            av_log(avctx, AV_LOG_ERROR, "unknown audio chconf! Please check the source...\n");
         avctx->channel_layout  = frame->channel_layout;//need reset avctx->ch_layout for ff_get_buffer to get correct size
         avctx->channels = frame->channels;
         frame->format = AV_SAMPLE_FMT_S16;
