@@ -62,6 +62,11 @@ static const struct channel_name channel_names[] = {
     [33] = { "SDL",       "surround direct left"  },
     [34] = { "SDR",       "surround direct right" },
     [35] = { "LFE2",      "low frequency 2"       },
+    [36] = { "TSL",       "top side left"         },
+    [37] = { "TSR",       "top side right"        },
+    [38] = { "BFC",       "bottom front center"   },
+    [39] = { "BFL",       "bottom front left"     },
+    [40] = { "BFR",       "bottom front right"    },
 };
 
 static const char *get_channel_name(int channel_id)
@@ -104,6 +109,13 @@ static const struct {
     { "octagonal",   8,  AV_CH_LAYOUT_OCTAGONAL },
     { "hexadecagonal", 16, AV_CH_LAYOUT_HEXADECAGONAL },
     { "downmix",     2,  AV_CH_LAYOUT_STEREO_DOWNMIX, },
+    { "10.2",        12, AV_CH_LAYOUT_10POINT2 },
+    { "22.2",        24, AV_CH_LAYOUT_22POINT2 },
+    { "5.1.2",       8,  AV_CH_LAYOUT_5POINT1POINT2_BACK },
+    { "5.1.4",       10, AV_CH_LAYOUT_5POINT1POINT4_BACK },
+    { "7.1.2",       10, AV_CH_LAYOUT_7POINT1POINT2 },
+    { "7.1.4",       12, AV_CH_LAYOUT_7POINT1POINT4_BACK },
+    { "hoa2(9.0)",   9,  AV_CH_LAYOUT_9POINT0 },
 };
 
 static uint64_t get_channel_layout_single(const char *name, int name_len)
