@@ -6,7 +6,6 @@
 #include "decode.h"
 #include "avcodec.h"
 #include "internal.h"
-#include "codec_internal.h"
 #include "libavutil/mastering_display_metadata.h"
 #if ARCH_AARCH64
 #include <arm_neon.h>
