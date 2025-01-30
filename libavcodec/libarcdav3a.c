@@ -379,21 +379,21 @@ fclose(fpout);*/
 			frm->channel_layout = av_get_default_channel_layout(h->out_frame.nChannel);
 			ChannelNumConfig chconf = (ChannelNumConfig)h->out_frame.nChCfg;
 			if (h->out_frame.nChannel == 1)
-				frm->ch_layout = (AVChannelLayout)AV_CHANNEL_LAYOUT_MONO; // need set frame->ch_payout to frame ch_out verification
+				frm->channel_layout = AV_CH_LAYOUT_MONO; // need set frame->ch_payout to frame ch_out verification
 			else if (h->out_frame.nChannel == 2)
-				frm->ch_layout = (AVChannelLayout)AV_CHANNEL_LAYOUT_STEREO; // need set frame->ch_payout to frame ch_out verification
+				frm->channel_layout = AV_CHANNEL_LAYOUT_STEREO; // need set frame->ch_payout to frame ch_out verification
 			else if (chconf == CHANNEL_CONFIG_MC_5_1_4 && h->out_frame.nChannel == 10)
-				frm->ch_layout = (AVChannelLayout)AV_CHANNEL_LAYOUT_5POINT1POINT4_BACK;
+				frm->channel_layout = AV_CH_LAYOUT_5POINT1POINT4_BACK;
 			else if (chconf == CHANNEL_CONFIG_MC_7_1_2 && h->out_frame.nChannel == 10)
-				frm->ch_layout = (AVChannelLayout)AV_CHANNEL_LAYOUT_7POINT1POINT2;
+				frm->channel_layout = AV_CH_LAYOUT_7POINT1POINT2;
 			else if (chconf == CHANNEL_CONFIG_MC_7_1_4 && h->out_frame.nChannel == 12)
-				frm->ch_layout = (AVChannelLayout)AV_CHANNEL_LAYOUT_7POINT1POINT4_BACK;
+				frm->channel_layout = AV_CH_LAYOUT_7POINT1POINT4_BACK;
 			else if (chconf == CHANNEL_CONFIG_HOA_ORDER3 && h->out_frame.nChannel == 16)
-				frm->ch_layout = (AVChannelLayout)AV_CHANNEL_LAYOUT_HEXADECAGONAL;
+				frm->channel_layout = AV_CH_LAYOUT_HEXADECAGONAL;
 			else if (chconf == CHANNEL_CONFIG_UNKNOWN) // error
 				av_log(avctx, AV_LOG_ERROR, "unknown audio chconf! Please check the source...\n");
-			avctx->ch_layout = frm->ch_layout; // need reset avctx->ch_layout for ff_get_buffer to get correct size
-			avctx->ch_layout.nb_channels = h->out_frame.nChannel;
+			avctx->channel_layout = frm->channel_layout; // need reset avctx->ch_layout for ff_get_buffer to get correct size
+			avctx->channels = h->out_frame.nChannel;
 			avctx->sample_rate = frm->sample_rate;
 
 			frm->format = AV_SAMPLE_FMT_S16;
