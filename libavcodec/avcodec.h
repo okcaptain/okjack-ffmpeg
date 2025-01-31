@@ -1366,7 +1366,7 @@ enum AVPacketSideDataType {
      * If its value becomes huge, some code using it
      * needs to be updated as it assumes it to be smaller than other limits.
      */
-    AV_PKT_DATA_NB
+    AV_PKT_DATA_NB,
 
     /**
      * HDR Vivid dynamic metadata associated with a video frame. The metadata is in
@@ -1375,7 +1375,7 @@ enum AVPacketSideDataType {
      */
     AV_PKT_DATA_DYNAMIC_HDR_VIVID,
     AV_PKT_DATA_VIVID_CUVV,
-    AV_PKT_DATA_AUDIO_VIVID,
+    AV_PKT_DATA_AUDIO_VIVID
 };
 
 #define AV_PKT_DATA_QUALITY_FACTOR AV_PKT_DATA_QUALITY_STATS //DEPRECATED
