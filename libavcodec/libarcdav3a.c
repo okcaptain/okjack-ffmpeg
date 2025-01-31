@@ -381,7 +381,7 @@ fclose(fpout);*/
 			if (h->out_frame.nChannel == 1)
 				frm->channel_layout = AV_CH_LAYOUT_MONO; // need set frame->ch_payout to frame ch_out verification
 			else if (h->out_frame.nChannel == 2)
-				frm->channel_layout = AV_CHANNEL_LAYOUT_STEREO; // need set frame->ch_payout to frame ch_out verification
+				frm->channel_layout = AV_CH_LAYOUT_STEREO; // need set frame->ch_payout to frame ch_out verification
 			else if (chconf == CHANNEL_CONFIG_MC_5_1_4 && h->out_frame.nChannel == 10)
 				frm->channel_layout = AV_CH_LAYOUT_5POINT1POINT4_BACK;
 			else if (chconf == CHANNEL_CONFIG_MC_7_1_2 && h->out_frame.nChannel == 10)
