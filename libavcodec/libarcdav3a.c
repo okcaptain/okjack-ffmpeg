@@ -372,8 +372,7 @@ fclose(fpout);*/
             frm->nb_samples = 1024;
             frm->sample_rate = h->out_frame.nSamplerate;
             frm->ch_layout.nb_channels = avctx->ch_layout.nb_channels;
-            frm->channel_layout = av_get_default_channel_layout(h->out_frame.nChannel);
-            av_channel_layout_default(&frm->ch_layout, avctx->ch_layout.nb_channels);
+            av_channel_layout_default(&frm->ch_layout, h->out_frame.nChannel);
             ChannelNumConfig chconf = (ChannelNumConfig)h->out_frame.nChCfg;
             if (h->out_frame.nChannel == 1)
                 frm->ch_layout = (AVChannelLayout)AV_CHANNEL_LAYOUT_MONO; // need set frame->ch_payout to frame ch_out verification
