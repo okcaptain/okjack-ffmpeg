@@ -333,6 +333,7 @@ External library support:
   --enable-vapoursynth     enable VapourSynth demuxer [no]
   --disable-xlib           disable xlib [autodetect]
   --disable-zlib           disable zlib [autodetect]
+  --enable-libarcdav3a     enable AV3A decoding via ArcVideo AV3A [no]
 
   The following libraries provide various hardware acceleration features:
   --disable-amf            disable AMF video encoding code [autodetect]
@@ -1977,6 +1978,7 @@ EXTERNAL_LIBRARY_LIST="
     openssl
     pocketsphinx
     vapoursynth
+    libarcdav3a
 "
 
 HWACCEL_AUTODETECT_LIBRARY_LIST="
@@ -3553,6 +3555,7 @@ vapoursynth_demuxer_deps="vapoursynth"
 videotoolbox_suggest="coreservices"
 videotoolbox_deps="corefoundation coremedia corevideo"
 videotoolbox_encoder_deps="videotoolbox VTCompressionSessionPrepareToEncodeFrames"
+libarcdav3a_decoder_deps="libarcdav3a"
 
 # demuxers / muxers
 ac3_demuxer_select="ac3_parser"

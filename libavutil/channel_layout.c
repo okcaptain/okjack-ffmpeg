@@ -213,7 +213,9 @@ static const struct channel_layout_name channel_layout_map[] = {
     { "7.1.2",          AV_CHANNEL_LAYOUT_7POINT1POINT2       },
     { "7.1.4",          AV_CHANNEL_LAYOUT_7POINT1POINT4_BACK  },
     { "7.2.3",          AV_CHANNEL_LAYOUT_7POINT2POINT3       },
+    { "hoa2(9.0)",      AV_CHANNEL_LAYOUT_9POINT0 },
     { "9.1.4",          AV_CHANNEL_LAYOUT_9POINT1POINT4_BACK  },
+    { "10.2",           AV_CHANNEL_LAYOUT_10POINT2 },
     { "hexadecagonal",  AV_CHANNEL_LAYOUT_HEXADECAGONAL       },
     { "downmix",        AV_CHANNEL_LAYOUT_STEREO_DOWNMIX,     },
     { "22.2",           AV_CHANNEL_LAYOUT_22POINT2,           },
@@ -838,6 +840,14 @@ void av_channel_layout_default(AVChannelLayout *ch_layout, int nb_channels)
 
     ch_layout->order       = AV_CHANNEL_ORDER_UNSPEC;
     ch_layout->nb_channels = nb_channels;
+}
+
+int64_t av_get_default_channel_layout(int nb_channels) {
+    int i;
+    for (i = 0; i < FF_ARRAY_ELEMS(channel_layout_map); i++)
+        if (nb_channels == channel_layout_map[i].layout.nb_channels)
+            return channel_layout_map[i].layout.u.mask;
+    return 0;
 }
 
 const AVChannelLayout *av_channel_layout_standard(void **opaque)
